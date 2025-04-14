@@ -185,14 +185,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 
-<p>It would be extremely difficult to offer a dissenting opinion to Messi being the greatest soccer player in the 21st century, and potentially of all time. The Argentine winger took on a new and historical challenge by moving to Miami in the Summer of 2023 to play in Major League Soccer.</p>
+<p>It would be difficult to offer a dissenting opinion to Messi being the greatest soccer player in the 21st century, and potentially of all time. The Argentine winger took on a new and historical challenge by moving to Miami in the Summer of 2023 to play in Major League Soccer.</p>
 <p>His first appearance in July of 2023 provided a marquee MLS moment where he scored a game-winning free kick in the final moments of a Leagues Cup bout versus Cruz Azul. From that moment on, expectations were high for his first full season in 2024.</p>
 <p>To put the basic stats forward, Messi had a historically good season. He had 20 goals and 16 assists.</p>
-<p>The resounding issue for the critics of his MVP award was that he only played 19 games in the season. For those that are new to the league, the regular season is 34 games.</p>
+<p>The resounding issue for the critics of his MVP award was that he only played 19 games in the season due to a mid-season ankle injury at Copa America. For those that are new to the league, the regular season is 34 games.</p>
 <p>The question becomes clear: Did Messi prove enough in 19 games to be the true MLS MVP?</p>
-<p>The first sample size we will look at are the 2024 MLS Designated Players. These players’ salaries can exceed the salary cap of MLS which usually consists of the MLS MVP seasonally.</p>
+<p>The first sample size will be the 2024 MLS Designated Players. These players’ salaries can exceed the salary cap of MLS which usually consists of the MLS MVP seasonally.</p>
 <p>How balanced and efficient was Messi in creating assists and goals when he had the chances to do so?</p>
-<p>To look at this, we made a stat ratio for assist and goal efficiency. Goal efficiency is goals to expected goals (xG) and assist efficiency is assists to progressive passes.</p>
+<p>To look at this, a stat ratio for assist and goal efficiency would be most effective. Goal efficiency is goals to expected goals (xG) and assist efficiency is assists to progressive passes.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
@@ -232,8 +232,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">x=</span>g_eff, <span class="at">y=</span>a_eff, <span class="at">size=</span>mp), </span>
 <span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>    <span class="at">color=</span> <span class="st">"#F7B5CD"</span>) <span class="sc">+</span></span>
 <span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_size</span>(<span class="at">range =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">3</span>), <span class="at">name=</span><span class="st">"starts"</span>) <span class="sc">+</span></span>
-<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> <span class="fl">0.9770309</span>) <span class="sc">+</span></span>
-<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept=</span><span class="fl">0.04695493</span>) <span class="sc">+</span></span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> <span class="fl">0.9770309</span>, <span class="at">color=</span><span class="st">"red"</span>) <span class="sc">+</span></span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept=</span><span class="fl">0.04695493</span>, <span class="at">color=</span><span class="st">"red"</span>) <span class="sc">+</span></span>
 <span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_text</span>(<span class="fu">aes</span>(<span class="at">x=</span><span class="fl">2.5</span>, <span class="at">y=</span><span class="fl">0.2</span>, <span class="at">label=</span><span class="st">"In-form attack"</span>), <span class="at">color=</span><span class="st">"blue"</span>) <span class="sc">+</span></span>
 <span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_text</span>(<span class="fu">aes</span>(<span class="at">x=</span><span class="fl">0.25</span>, <span class="at">y=</span><span class="fl">0.02</span>, <span class="at">label=</span><span class="st">"Out-of-form attack"</span>), <span class="at">color=</span><span class="st">"blue"</span>) <span class="sc">+</span></span>
 <span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_text_repel</span>(</span>
@@ -251,12 +251,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-53"><a href="#cb1-53" aria-hidden="true" tabindex="-1"></a><span class="fu">labs</span>(</span>
 <span id="cb1-54"><a href="#cb1-54" aria-hidden="true" tabindex="-1"></a>    <span class="at">x=</span><span class="st">"Goal Efficiency (Goals/xG)"</span>, </span>
 <span id="cb1-55"><a href="#cb1-55" aria-hidden="true" tabindex="-1"></a>    <span class="at">y=</span><span class="st">"Assist Efficiency (Assists/Progressive Passes)"</span>, </span>
-<span id="cb1-56"><a href="#cb1-56" aria-hidden="true" tabindex="-1"></a>    <span class="at">title=</span><span class="st">"Messi MVP Controversy"</span>, </span>
-<span id="cb1-57"><a href="#cb1-57" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle=</span><span class="st">"The 2024 MLS MVP may be less clinical at goal than a teammate, but more balanced than everyone"</span>, </span>
-<span id="cb1-58"><a href="#cb1-58" aria-hidden="true" tabindex="-1"></a>    <span class="at">caption=</span><span class="st">"Source: Football Reference | Chase Ruch"</span></span>
-<span id="cb1-59"><a href="#cb1-59" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">+</span></span>
-<span id="cb1-60"><a href="#cb1-60" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
-<span id="cb1-61"><a href="#cb1-61" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">face =</span> <span class="st">"bold"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-56"><a href="#cb1-56" aria-hidden="true" tabindex="-1"></a>    <span class="at">title=</span><span class="st">"MLS DP Efficiency"</span>, </span>
+<span id="cb1-57"><a href="#cb1-57" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle=</span><span class="st">"The 2024 MLS MVP compared to &lt;span style = 'color:red;'&gt;average DPs&lt;/span&gt; is."</span>, </span>
+<span id="cb1-58"><a href="#cb1-58" aria-hidden="true" tabindex="-1"></a>    <span class="at">caption=</span><span class="st">"Source: Football Reference | Chase Ruch"</span>,</span>
+<span id="cb1-59"><a href="#cb1-59" aria-hidden="true" tabindex="-1"></a>    <span class="at">plot.title.position=</span><span class="st">"plot"</span></span>
+<span id="cb1-60"><a href="#cb1-60" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">+</span></span>
+<span id="cb1-61"><a href="#cb1-61" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb1-62"><a href="#cb1-62" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">face =</span> <span class="st">"bold"</span>)) <span class="sc">+</span></span>
+<span id="cb1-63"><a href="#cb1-63" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
+<span id="cb1-64"><a href="#cb1-64" aria-hidden="true" tabindex="-1"></a>    <span class="at">plot.subtitle =</span> <span class="fu">element_textbox_simple</span>()</span>
+<span id="cb1-65"><a href="#cb1-65" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <div>
@@ -266,8 +270,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </div>
-<p>If one looks at Messi within the “in-form attack” segement, it is clear that he is the most balanced in-form player with a combined look into assist and goal efficiency. The most interesting part is his teammate (at both Inter Miami and Barcelona) Sergio Busquets was significantly more efficient in front of goal than Messi last season. The caveat is that the midfielder did not dish out assists as efficiently as he typically did in the past.</p>
-<p>The next rebuttal to come from the critics is the penalty argument. A social media phenomenon is the phrase “Pessi.” This is essentially a slang term showing that Messi is helped by his teammates (and referees) to get goal scoring opportunities at the penalty spot.</p>
+<p>If one looks at Messi within the “in-form attack” segement, it is clear that he is the most balanced in-form player that favors goal scoring (LA Galaxy’s Riqui Puig is the closest to rival him). The most interesting part is his teammate (at both Inter Miami and Barcelona) Sergio Busquets was significantly more efficient in front of goal than Messi last season. The caveat is that the midfielder did not dish out assists as efficiently as he typically did in the past.</p>
+<p>The next rebuttal to come from the critics is the penalty argument. A social media phenomenon is the phrase “Pessi.” This is essentially a slang term showing that Messi is helped by his teammates and referees to get goal scoring opportunities at the penalty spot.</p>
 <p>Just recently in April viewers saw a “Pessi” flag at BMO Stadium in Los Angeles before a match against LAFC, mocking the World Cup winner. This is an ongoing fight against his legitimacy that is particularly fueled in the Messi versus Cristiano Ronaldo debate.</p>
 <p>So, did Mr.&nbsp;Messi prove the doubters wrong? Did he rely on penalties to get the MVP award to his name? Time to narrow this down to the MVP finalists.</p>
 <div class="cell">
@@ -311,11 +315,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>    <span class="at">x=</span><span class="st">"MVP Finalist"</span>, </span>
 <span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a>    <span class="at">y=</span><span class="st">"Season xG"</span>, </span>
 <span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a>    <span class="at">title=</span><span class="st">"Was Messi Helped Via Penalites?"</span>, </span>
-<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle=</span><span class="st">"Messi long faced penalty criticisim in his career, how did he compare to MVP finalists?"</span> , </span>
-<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a>    <span class="at">caption=</span><span class="st">"Source: Football Reference | Chase Ruch"</span></span>
-<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">+</span></span>
-<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
-<span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">face =</span> <span class="st">"bold"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle=</span><span class="st">"Did Messi &lt;span style = 'color:darkred;'&gt;rely on penalties&lt;/span&gt; or did he get opportunities &lt;span style = 'color:darkgreen;'&gt;in the run of play&lt;/span&gt;."</span> , </span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a>    <span class="at">caption=</span><span class="st">"Source: Football Reference | Chase Ruch"</span>,</span>
+<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a>    <span class="at">plot.title.position=</span><span class="st">"plot"</span></span>
+<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">+</span></span>
+<span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb2-44"><a href="#cb2-44" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">face =</span> <span class="st">"bold"</span>)) <span class="sc">+</span></span>
+<span id="cb2-45"><a href="#cb2-45" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
+<span id="cb2-46"><a href="#cb2-46" aria-hidden="true" tabindex="-1"></a>    <span class="at">plot.subtitle =</span> <span class="fu">element_textbox_simple</span>()</span>
+<span id="cb2-47"><a href="#cb2-47" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <div>
@@ -339,10 +347,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">y=</span><span class="st">"Per 90 xG"</span>, </span>
 <span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">title=</span><span class="st">"Did Messi Do Enough in Each Game?"</span>, </span>
 <span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle=</span><span class="st">"Messi only played 19 of 34 games, so did he dominate enough when he played?"</span>, </span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">caption=</span><span class="st">"Source: Football Reference | Chase Ruch"</span></span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">+</span></span>
-<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
-<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">face =</span> <span class="st">"bold"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">caption=</span><span class="st">"Source: Football Reference | Chase Ruch"</span>,</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">plot.title.position=</span><span class="st">"plot"</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">+</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">face =</span> <span class="st">"bold"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <div>
@@ -352,11 +361,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </div>
-<p>There are three MLS MVP winners in the last decade to set the record for most points in a single season with their respective team. One of them set this record along with the single season scoring record: Carlos Vela.</p>
+<p>There are three MLS MVP winners in the last decade to set the record for most points in a single season with their respective team. One of these players set this record along with the single season scoring record: Carlos Vela.</p>
 <p>In 2019, Vela scored 34 goals in 33 appearances for LAFC. It would be unusual if he did not score in any given fixture.</p>
 <p>If one were to raise the question of the greatest single season in MLS history, the measuring stick is Vela.</p>
 <p>Before any rash assumptions are made, Messi did not have a better season than Vela because Messi is 13 goal contributions short (Vela also holds that record in a single season with 49). The question is did Messi have the pace that Vela did to potentially reach his mark if they matched in appearances.</p>
-<p>The best statistic to measure this is a “goal creating action,” or GCA. A GCA credits a player for a hot, a dribble, a foul drawn, a clearance, or a tackle that leads to a goal. There are other specific circumstances that can credit a player with a GCA, but those are the most common scenarios.</p>
+<p>The best statistic to measure this is a “goal creating action,” or GCA. A GCA credits a player for a shot, a dribble, a foul drawn, a clearance, or a tackle that leads to a goal. There are other specific circumstances that can credit a player with a GCA, but those are the most common scenarios.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
@@ -390,15 +399,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>    <span class="at">y=</span><span class="st">"Cumulative Goal-Creating Actions"</span>, </span>
 <span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">title=</span><span class="st">"Messi Versus the Most Impressive MVP Season"</span>, </span>
 <span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle=</span><span class="st">"Did Messi have any pace to Carlos Vela's 2019 Season to match goal-creating actions?"</span>, </span>
-<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>    <span class="at">caption=</span><span class="st">"Source: Football Reference | By Chase Ruch"</span></span>
-<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">+</span> </span>
-<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
-<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">annotate</span>(<span class="st">"text"</span>, <span class="at">x=</span><span class="dv">01</span>, <span class="at">y=</span><span class="dv">5</span>, <span class="at">label=</span><span class="st">"Messi"</span>, <span class="at">color=</span><span class="st">"#F7B5CD"</span>, <span class="at">fontface=</span><span class="st">"bold"</span>) <span class="sc">+</span></span>
-<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a>  <span class="fu">annotate</span>(<span class="st">"text"</span>, <span class="at">x=</span><span class="dv">02</span>, <span class="at">y=</span><span class="dv">7</span>, <span class="at">label=</span><span class="st">"Vela"</span>, <span class="at">color=</span><span class="st">"#C39E6D"</span>, <span class="at">fontface=</span><span class="st">"bold"</span>) <span class="sc">+</span></span>
-<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a>  <span class="fu">annotate</span>(<span class="st">"text"</span>, <span class="at">x=</span><span class="fl">6.5</span>, <span class="at">y=</span><span class="dv">10</span>, <span class="at">label=</span><span class="st">"Messi's Injury"</span>, <span class="at">color=</span><span class="st">"red"</span>, <span class="at">fontface=</span><span class="st">"bold"</span>) <span class="sc">+</span></span>
-<span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">face =</span> <span class="st">"bold"</span>)) <span class="sc">+</span></span>
-<span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> <span class="fl">5.1</span>) <span class="sc">+</span></span>
-<span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> <span class="fl">7.9</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>    <span class="at">caption=</span><span class="st">"Source: Football Reference | By Chase Ruch"</span>,</span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>    <span class="at">plot.title.position=</span><span class="st">"plot"</span></span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">+</span> </span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a>  <span class="fu">annotate</span>(<span class="st">"text"</span>, <span class="at">x=</span><span class="dv">01</span>, <span class="at">y=</span><span class="dv">5</span>, <span class="at">label=</span><span class="st">"Messi"</span>, <span class="at">color=</span><span class="st">"#F7B5CD"</span>, <span class="at">fontface=</span><span class="st">"bold"</span>) <span class="sc">+</span></span>
+<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a>  <span class="fu">annotate</span>(<span class="st">"text"</span>, <span class="at">x=</span><span class="dv">02</span>, <span class="at">y=</span><span class="dv">7</span>, <span class="at">label=</span><span class="st">"Vela"</span>, <span class="at">color=</span><span class="st">"#C39E6D"</span>, <span class="at">fontface=</span><span class="st">"bold"</span>) <span class="sc">+</span></span>
+<span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a>  <span class="fu">annotate</span>(<span class="st">"text"</span>, <span class="at">x=</span><span class="fl">6.5</span>, <span class="at">y=</span><span class="dv">10</span>, <span class="at">label=</span><span class="st">"Messi's Injury"</span>, <span class="at">color=</span><span class="st">"red"</span>, <span class="at">fontface=</span><span class="st">"bold"</span>) <span class="sc">+</span></span>
+<span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">face =</span> <span class="st">"bold"</span>)) <span class="sc">+</span></span>
+<span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> <span class="fl">5.1</span>) <span class="sc">+</span></span>
+<span id="cb4-40"><a href="#cb4-40" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> <span class="fl">7.9</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <div>
@@ -409,10 +419,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 <p>The crucial area to look at is Messi’s injury phase during the late summer to early fall. He had a better GCA pace than Vela.</p>
-<p>It is not possible to be 100% sure that Messi would have a better season than the Mexican, but it is valid to say that he had the pace to.</p>
+<p>It is not possible to be 100% sure that Messi would have a better season than the Mexican, but it is valid to theorize that he had the pace to.</p>
 <p>Another interesting piece to dwell on is the lull Vela had to end the season in terms of GCA. The season ended a bit earlier at the time, but a fully healthy Messi had a window to pounce on it.</p>
-<p>Messi also picked up where he left off as soon as he came back. He made it to within five.</p>
-<p>So not only did Messi have MVP dominance amongst his candidate pool, he had pace to beating the best single MVP season in league history. If you are a bettor that likes plus odds, the boy from Rosario, Argentina is a solid take to one-up Vela’s record.</p>
+<p>Messi also picked up where he left off as soon as he came back. He made it to within five GCAs.</p>
+<p>So not only did Messi have MVP dominance among his candidate pool, he had pace to beating the best single MVP season in league history in some statistical areas. If one were a bettor that likes plus odds, the boy from Rosario, Argentina, is a solid take to one-up Vela’s record.</p>
 
 
 
