@@ -66,32 +66,31 @@
             player: {
                 id: "player_character",
                 name: "Matt Rhule",
-                // Placeholder images are replaced with the actual access IDs
-                image: "uploaded:rhule_headshot.jpg-e0f950d9-c647-4f81-a791-8b71e281075d",
-                initialPosition: { x: 100, y: 500 }, // Y is calculated dynamically later
+                // --- UPDATED FOR GITHUB PAGES: Using local file path ---
+                image: "rhule_headshot.jpg",
+                initialPosition: { x: 100, y: 500 }, 
                 width: 80,
-                height: 80, // Reduced height for better visibility
+                height: 80, 
                 jumpHeight: 180,
                 jumpSpeed: 10
             },
             obstacles: [
-                { id: "obstacle_pennstate", name: "PSU Nittany Lion", image: "uploaded:psu_logo.png-66bbe6ee-ad3b-4d79-9c7b-5ab7a788baed", width: 70, height: 70, type: "ground", speedFactor: 1.0 },
-                { id: "obstacle_lsu", name: "LSU Tiger", image: "uploaded:lsu_tiger.png-c04118d0-5d0f-4bdf-a6d4-8aece67c49d2", width: 80, height: 80, type: "ground", speedFactor: 1.1 },
-                { id: "obstacle_auburn", name: "Auburn AU", image: "uploaded:auburn_logo.png-c6101724-ed52-4002-8f1b-3c024f746b18", width: 60, height: 60, type: "ground", speedFactor: 1.05 },
-                { id: "obstacle_ucla", name: "UCLA Bruins", image: "uploaded:ucla_bear.jpg-c4ea4cae-423f-4dae-b8e0-6bf1fc50d636", width: 90, height: 75, type: "ground", speedFactor: 1.15 },
-                { id: "obstacle_florida", name: "Florida Gators", image: "uploaded:florida_logo.jpg-777b0f5b-340b-4a11-984b-5156f7bc0a81", width: 95, height: 65, type: "ground", speedFactor: 1.2 }
+                // --- UPDATED FOR GITHUB PAGES: Using local file paths ---
+                { id: "obstacle_pennstate", name: "PSU Nittany Lion", image: "psu_logo.png", width: 70, height: 70, type: "ground", speedFactor: 1.0 },
+                { id: "obstacle_lsu", name: "LSU Tiger", image: "lsu_tiger.png", width: 80, height: 80, type: "ground", speedFactor: 1.1 },
+                { id: "obstacle_auburn", name: "Auburn AU", image: "auburn_logo.png", width: 60, height: 60, type: "ground", speedFactor: 1.05 },
+                { id: "obstacle_ucla", name: "UCLA Bruins", image: "ucla_bear.jpg", width: 90, height: 75, type: "ground", speedFactor: 1.15 },
+                { id: "obstacle_florida", name: "Florida Gators", image: "florida_logo.jpg", width: 95, height: 65, type: "ground", speedFactor: 1.2 }
+                // -----------------------------------------------------
             ],
             gameSettings: {
                 initialGameSpeed: 6,
-                // Removed continuous speed increase
                 speedIncreaseRate: 0, 
-                maxGameSpeed: 30, // Increased max speed to allow for doubling
-                // --- UPDATED: Increased obstacle frequency ---
+                maxGameSpeed: 30, 
                 obstacleSpawnIntervalMin: 70, 
                 obstacleSpawnIntervalMax: 140, 
-                // ---------------------------------------------
-                framesPerSecond: 60, // Standard frame rate approximation
-                speedBoostIntervalFrames: 600 // 10 seconds * 60 FPS
+                framesPerSecond: 60, 
+                speedBoostIntervalFrames: 600 
             }
         };
 
@@ -114,9 +113,9 @@
         let player;
         let obstacles = [];
         let nextObstacleFrame = 0;
-        let speedBoostsApplied = 0; // Tracks how many times speed has doubled
+        let speedBoostsApplied = 0; 
 
-        let GROUND_Y = 0; // The Y position for the ground line (calculated from canvas height)
+        let GROUND_Y = 0; 
 
         /**
          * Converts the file ID into a useable image element.
@@ -126,8 +125,6 @@
         function loadImage(filename) {
             return new Promise((resolve, reject) => {
                 const img = new Image();
-                // FIX: Ensure the crossOrigin attribute is set to allow image loading from external sources
-                // img.crossOrigin = "anonymous"; // May not be strictly necessary here but good practice
                 
                 img.onload = () => resolve(img);
                 img.onerror = () => {
@@ -141,9 +138,7 @@
                     ftx.fillRect(0, 0, 100, 100);
                     resolve(fallbackCanvas);
                 };
-                // FIX: The core fix is ensuring the source is set correctly and the onload fires.
-                // For files provided by the context (like 'uploaded:xxx'), the URL should be directly accessible,
-                // so the filename itself is often enough, but adding the necessary delay check is key.
+                // With local file paths, this directly requests the file from the server
                 img.src = filename;
             });
         }
@@ -178,7 +173,7 @@
             } catch (error) {
                 console.error("Asset loading failed:", error);
                 messageTitle.textContent = "ASSET LOAD ERROR";
-                messageBody.textContent = "Check console for details.";
+                messageBody.textContent = "Check console for details. Make sure images are in the same folder as index.html.";
                 restartButton.classList.add('hidden'); 
             }
         }
@@ -238,9 +233,8 @@
             update() {
                 if (this.isJumping) {
                     this.y += this.jumpVelocity;
-                    // --- UPDATED: Increased gravity for quicker descent ---
+                    // Increased gravity for quicker descent
                     this.jumpVelocity += 0.8; 
-                    // ---------------------------------------------------
 
                     if (this.y >= this.groundY) {
                         this.y = this.groundY;
@@ -253,7 +247,7 @@
             jump() {
                 if (!this.isJumping && isGameRunning) {
                     this.isJumping = true;
-                    // Note: Initial jump velocity calculation needs to account for the new gravity value (0.8)
+                    // Note: Initial jump velocity calculation uses the new gravity value (0.8)
                     this.jumpVelocity = -Math.sqrt(2 * 0.8 * this.jumpHeight);
                 }
             }
@@ -384,9 +378,8 @@
             player.isJumping = false;
             player.jumpVelocity = 0;
 
-            // --- FIX: Ensure score display resets immediately ---
+            // FIX: Ensure score display resets immediately
             scoreDisplay.textContent = 'TIME: 0.00s'; 
-            // ----------------------------------------------------
 
             messageBox.classList.add('opacity-0', 'pointer-events-none');
             restartButton.classList.add('hidden');
@@ -437,3 +430,4 @@
     </script>
 </body>
 </html>
+
