@@ -3,283 +3,365 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daily Nebraskan News Quiz</title>
+    <title>Buyout Bash - The Running Game</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'nebraska-red': '#D00000',
-                        'nebraska-black': '#000000',
-                        'off-white': '#f8f9fa',
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    }
-                }
-            }
-        }
-    </script>
+    <!-- Use Inter font -->
     <style>
-        /* Custom styles for better readability and aesthetics */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         body {
-            background-color: #f8f9fa;
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
         }
-        .card {
+        /* Custom styles for the game container and canvas */
+        .game-container {
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            transition: transform 0.3s ease-in-out;
+            max-width: 1024px;
+            margin-left: auto;
+            margin-right: auto;
+            overflow: hidden; /* Prevent images from sticking out */
+            background-color: #fff;
         }
-        .question-card {
-            border-left: 4px solid #D00000;
-        }
-        .radio-label {
+        canvas {
             display: block;
-            padding: 1rem;
-            margin-bottom: 0.5rem;
-            border: 1px solid #e2e8f0;
-            border-radius: 0.5rem;
-            cursor: pointer;
-            transition: background-color 0.2s, border-color 0.2s;
-            background-color: white;
-        }
-        .radio-label:hover {
-            background-color: #f0f4f8;
-        }
-        input[type="radio"]:checked + .radio-label {
-            background-color: #ffe5e5; /* Light red background */
-            border-color: #D00000;
-        }
-        .score-correct {
-            background-color: #d1fae5; /* Green */
-            border-color: #059669;
-        }
-        .score-incorrect {
-            background-color: #fee2e2; /* Red */
-            border-color: #ef4444;
+            background-color: #f9fafb; /* Light background for the track */
+            border-bottom: 4px solid #374151; /* The ground line */
+            touch-action: manipulation; /* Improves touch handling */
         }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-4">
+<body class="p-4 md:p-8">
 
-    <!-- Main Quiz Container -->
-    <div id="quiz-container" class="w-full max-w-2xl bg-off-white p-6 md:p-10 rounded-xl card my-8">
-        <header class="text-center mb-8">
-            <h1 class="text-3xl md:text-4xl font-bold text-nebraska-black">The Daily Nebraskan Quiz</h1>
-            <h2 class="text-xl text-nebraska-red font-semibold mt-1">Football Bowl Eligibility Edition</h2>
-            <p class="text-gray-600 mt-2">Test your knowledge on the key takeaways from the latest game.</p>
-        </header>
-
-        <!-- Quiz Form - Populated by JavaScript -->
-        <form id="quiz-form">
-            <!-- Questions will be injected here -->
-        </form>
-
-        <!-- Submit Button -->
-        <div id="submit-section" class="mt-8 text-center">
-            <button id="submit-btn" class="w-full py-3 px-6 bg-nebraska-red text-white font-bold rounded-lg hover:bg-red-700 transition duration-300 transform hover:scale-[1.01] shadow-lg disabled:opacity-50" onclick="submitQuiz()">
-                Submit Answers
-            </button>
+    <div id="app" class="game-container rounded-xl">
+        <div class="p-4 bg-gray-900 text-white rounded-t-xl">
+            <h1 class="text-3xl font-extrabold tracking-tight">🏈 Buyout Bash</h1>
+            <p class="text-sm opacity-75">Dodge those buyouts! Press **Space** or **Tap** to Jump.</p>
         </div>
+        
+        <div class="relative">
+            <!-- Game Canvas -->
+            <canvas id="gameCanvas" width="900" height="300" class="w-full"></canvas>
 
-        <!-- Result Section (Hidden until quiz is submitted) -->
-        <div id="results" class="hidden mt-8 p-6 bg-white rounded-lg border-2 border-nebraska-red">
-            <h3 class="text-2xl font-bold text-nebraska-black mb-4 border-b pb-2">Your Results</h3>
-            <p id="score-text" class="text-3xl font-extrabold text-nebraska-red mb-4"></p>
-            <div id="feedback-container" class="space-y-4">
-                <!-- Feedback for each question will be injected here -->
+            <!-- Score Display -->
+            <div id="scoreDisplay" class="absolute top-2 right-4 text-2xl font-black text-gray-700">SCORE: 0</div>
+            
+            <!-- Game Over / Start Message Box -->
+            <div id="messageBox" class="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-70 transition-opacity duration-300">
+                <div class="bg-white p-8 rounded-lg shadow-2xl text-center">
+                    <p class="text-4xl font-extrabold text-red-600 mb-4" id="messageTitle">PRESS SPACE TO START</p>
+                    <p class="text-lg text-gray-700" id="messageBody">Dodge the obstacles for the highest buyout score.</p>
+                    <button id="restartButton" class="hidden mt-4 px-6 py-3 bg-indigo-600 text-white font-bold rounded-lg shadow-lg hover:bg-indigo-700 transition transform hover:scale-105">RESTART</button>
+                </div>
             </div>
-            <button class="mt-6 w-full py-2 bg-nebraska-black text-white font-bold rounded-lg hover:bg-gray-800 transition duration-300" onclick="startQuiz()">
-                Try Again
-            </button>
         </div>
-
     </div>
 
+    <!-- The main game script -->
     <script>
-        // The full JSON data containing all 20 questions
-        const QUIZ_DATA = {
-            "quiz_questions": [
-                { "id": 1, "question": "Nebraska initially led the game 24-6 in the third quarter.", "type": "True/False", "answer": "False", "explanation": "The initial lead was 21-6." },
-                { "id": 2, "question": "Northwestern outgained the Huskers in total yards and dominated on the ground.", "type": "True/False", "answer": "True", "explanation": "The article confirms Northwestern 'outgaining the Huskers in total yards and dominating on the ground.'" },
-                { "id": 3, "question": "An interception by Northwestern's Preston Stone gave the Wildcats the lead in the fourth quarter.", "type": "True/False", "answer": "False", "explanation": "An interception from Dylan Raiola set the Wildcats up, but an 'even worse pick from Preston Stone' gave the Huskers another chance." },
-                { "id": 4, "question": "The game-winning drive for Nebraska covered 64 yards and included 13 plays.", "type": "True/False", "answer": "True", "explanation": "The final drive was described as 'The 13-play, 64-yard drive.'" },
-                { "id": 5, "question": "After the loss to Minnesota, the heart of Nebraska players and coaches was questioned.", "type": "True/False", "answer": "True", "explanation": "The article states, 'After a 24-6 loss to Minnesota last week, the heart of Nebraska players and coaches were questioned.'" },
-                { "id": 6, "question": "Nebraska's head coach, Matt Rhule, said the team didn't even mention achieving bowl eligibility after the win.", "type": "True/False", "answer": "True", "explanation": "Rhule's quote confirms, 'We didn’t even mention it (this time).'" },
-                { "id": 7, "question": "The Huskers ran the ball only 16 times against Northwestern, emphasizing the pass game.", "type": "True/False", "answer": "False", "explanation": "Nebraska ran the ball 39 times compared to 22 throws." },
-                { "id": 8, "question": "Emmett Johnson tied his season-high with 14 carries in the game.", "type": "True/False", "answer": "False", "explanation": "Johnson 'erupted for a season-high 27 carries,' compared to 14 at Minnesota." },
-                { "id": 9, "question": "Dylan Raiola reportedly 'didn't pout or anything' after his interception, according to a teammate.", "type": "True/False", "answer": "True", "explanation": "The article includes this direct quote from a teammate." },
-                { "id": 10, "question": "The Nebraska offensive line allowed a total of nine sacks in the win over Northwestern.", "type": "True/False", "answer": "False", "explanation": "The line allowed nine sacks the week before but only one sack against Northwestern." },
-                { "id": 11, "question": "What player scored the game-winning touchdown for Nebraska?", "type": "Multiple Choice", "options": ["A. Dylan Raiola", "B. Emmett Johnson", "C. Nyziah Hunter", "D. Kenneth Williams"], "answer": "B", "explanation": "The drive was 'capped off by a four-yard touchdown run from Emmett Johnson'." },
-                { "id": 12, "question": "The game-winning drive was capped off by a touchdown run of how many yards?", "type": "Multiple Choice", "options": ["A. 1 yard", "B. 2 yards", "C. 3 yards", "D. 4 yards"], "answer": "D", "explanation": "The touchdown run was a 'four-yard touchdown run from Emmett Johnson'." },
-                { "id": 13, "question": "What team did Nebraska lose to the week before the Northwestern game?", "type": "Multiple Choice", "options": ["A. Wisconsin", "B. Minnesota", "C. Iowa", "D. Michigan"], "answer": "B", "explanation": "The article mentions the '24-6 loss to Minnesota last week.'" },
-                { "id": 14, "question": "How did Nebraska's offense run the ball compared to throwing it against Northwestern?", "type": "Multiple Choice", "options": ["A. They threw it more than they ran it.", "B. They ran and threw it an equal number of times.", "C. They threw it twice as many times as they ran it.", "D. They ran it more than they threw it."], "answer": "D", "explanation": "The Huskers ran the ball 39 times compared to just 22 throws." },
-                { "id": 15, "question": "On the final, game-winning drive, Dylan Raiola connected on how many third-down conversions?", "type": "Multiple Choice", "options": ["A. One", "B. Two", "C. Three", "D. Four"], "answer": "D", "explanation": "Raiola 'connected on all four third-down conversions' on the final drive." },
-                { "id": 16, "question": "What was the *honorable mark* for the offensive line's improvement against Northwestern?", "type": "Multiple Choice", "options": ["A. They paved the way for a 100-yard rusher.", "B. They allowed no quarterback hurries.", "C. They went from allowing nine sacks to one sack.", "D. They started a new right tackle."], "answer": "C", "explanation": "The offensive line allowed only one sack, a quick turnaround from allowing nine a week ago." },
-                { "id": 17, "question": "The 'Blackshirt defense' forced how many interceptions in the game?", "type": "Multiple Choice", "options": ["A. Zero", "B. One", "C. Two", "D. Three"], "answer": "C", "explanation": "John Butler’s unit forced two huge picks." },
-                { "id": 18, "question": "What was the net result of the two forced turnovers by the Husker defense?", "type": "Multiple Choice", "options": ["A. 3 points", "B. 7 points", "C. 14 points", "D. 21 points"], "answer": "C", "explanation": "The two huge picks resulted in '14 Husker points.'" },
-                { "id": 19, "question": "Which player's special teams play 'ignited the Huskers' with a 95-yard kick return touchdown?", "type": "Multiple Choice", "options": ["A. Emmett Johnson", "B. Donovan Jones", "C. Archie Wilson", "D. Kenneth Williams"], "answer": "D", "explanation": "Kenneth Williams’ 95-yard kick return touchdown... ignited the Huskers." },
-                { "id": 20, "question": "After the win, how many regular season games does Nebraska have remaining with bigger aspirations ahead?", "type": "Multiple Choice", "options": ["A. One", "B. Two", "C. Three", "D. Four"], "answer": "D", "explanation": "The Huskers now can play freely for the last four regular season games." }
-            ]
+        // --- 1. GAME CONFIGURATION (Based on JSON) ---
+        const GAME_CONFIG = {
+            gameTitle: "Buyout Bash",
+            player: {
+                id: "player_character",
+                name: "Matt Rhule",
+                // Placeholder images are replaced with the actual access IDs
+                image: "uploaded:rhule_headshot.jpg-e0f950d9-c647-4f81-a791-8b71e281075d",
+                initialPosition: { x: 100, y: 500 }, // Y is calculated dynamically later
+                width: 80,
+                height: 80, // Reduced height for better visibility
+                jumpHeight: 180,
+                jumpSpeed: 10
+            },
+            obstacles: [
+                { id: "obstacle_pennstate", name: "PSU Nittany Lion", image: "uploaded:psu_logo.png-66bbe6ee-ad3b-4d79-9c7b-5ab7a788baed", width: 70, height: 70, type: "ground", speedFactor: 1.0 },
+                { id: "obstacle_lsu", name: "LSU Tiger", image: "uploaded:lsu_tiger.png-c04118d0-5d0f-4bdf-a6d4-8aece67c49d2", width: 80, height: 80, type: "ground", speedFactor: 1.1 },
+                { id: "obstacle_auburn", name: "Auburn AU", image: "uploaded:auburn_logo.png-c6101724-ed52-4002-8f1b-3c024f746b18", width: 60, height: 60, type: "ground", speedFactor: 1.05 },
+                { id: "obstacle_ucla", name: "UCLA Bruins", image: "uploaded:ucla_bear.jpg-c4ea4cae-423f-4dae-b8e0-6bf1fc50d636", width: 90, height: 75, type: "ground", speedFactor: 1.15 },
+                { id: "obstacle_florida", name: "Florida Gators", image: "uploaded:florida_logo.jpg-777b0f5b-340b-4a11-984b-5156f7bc0a81", width: 95, height: 65, type: "ground", speedFactor: 1.2 }
+            ],
+            gameSettings: {
+                initialGameSpeed: 6,
+                speedIncreaseRate: 0.001, // Gradual increase per frame
+                maxGameSpeed: 18,
+                obstacleSpawnIntervalMin: 120, // Min frames between spawns
+                obstacleSpawnIntervalMax: 220, // Max frames between spawns
+            }
         };
 
-        const NUM_QUESTIONS = 5;
-        let selectedQuestions = [];
+        // --- 2. SETUP & INITIALIZATION ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const messageBox = document.getElementById('messageBox');
+        const messageTitle = document.getElementById('messageTitle');
+        const messageBody = document.getElementById('messageBody');
+        const restartButton = document.getElementById('restartButton');
+
+        let isGameRunning = false;
+        let isGameOver = false;
+        let gameFrame = 0;
+        let score = 0;
+        let gameSpeed = GAME_CONFIG.gameSettings.initialGameSpeed;
+        let assetsLoaded = false;
+        const assets = {};
+        let player;
+        let obstacles = [];
+        let nextObstacleFrame = 0;
+
+        const GROUND_Y = 0; // The Y position for the ground line (calculated from canvas height)
 
         /**
-         * Shuffles an array using the Fisher-Yates algorithm.
-         * @param {Array} array - The array to shuffle.
-         * @returns {Array} The shuffled array.
+         * Converts the file ID into a useable image element.
+         * @param {string} filename The name of the file to load.
+         * @returns {Promise<HTMLImageElement>} A promise that resolves to an image element.
          */
-        function shuffleArray(array) {
-            for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [array[i], array[j]] = [array[j], array[i]];
-            }
-            return array;
-        }
-
-        /**
-         * Starts the quiz by selecting random questions and rendering the form.
-         */
-        function startQuiz() {
-            // Hide results and show form/submit button
-            document.getElementById('results').classList.add('hidden');
-            document.getElementById('quiz-form').classList.remove('hidden');
-            document.getElementById('submit-section').classList.remove('hidden');
-
-            // 1. Select 5 random questions
-            const shuffled = shuffleArray([...QUIZ_DATA.quiz_questions]);
-            selectedQuestions = shuffled.slice(0, NUM_QUESTIONS);
-
-            // 2. Render the questions
-            renderQuestions();
-        }
-
-        /**
-         * Renders the question form based on the selectedQuestions array.
-         */
-        function renderQuestions() {
-            const form = document.getElementById('quiz-form');
-            form.innerHTML = ''; // Clear previous questions
-
-            selectedQuestions.forEach((q, index) => {
-                const questionNumber = index + 1;
-                const questionHtml = `
-                    <div class="mb-6 p-4 bg-white rounded-lg question-card" id="q-${index}">
-                        <p class="text-lg font-semibold text-nebraska-black mb-3">
-                            <span class="text-nebraska-red font-extrabold mr-1">${questionNumber}.</span> ${q.question}
-                        </p>
-                        ${q.type === 'True/False' ? renderTrueFalseOptions(q, index) : renderMultipleChoiceOptions(q, index)}
-                        <p class="text-sm mt-3 hidden text-gray-700" id="feedback-${index}"></p>
-                    </div>
-                `;
-                form.innerHTML += questionHtml;
+        function loadImage(filename) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = () => {
+                    console.error(`Failed to load image: ${filename}. Using placeholder.`);
+                    // Fallback: Create a simple grey box if the image fails to load
+                    const fallbackCanvas = document.createElement('canvas');
+                    fallbackCanvas.width = 100;
+                    fallbackCanvas.height = 100;
+                    const ftx = fallbackCanvas.getContext('2d');
+                    ftx.fillStyle = '#9ca3af'; // Gray
+                    ftx.fillRect(0, 0, 100, 100);
+                    resolve(fallbackCanvas);
+                };
+                img.src = filename;
             });
         }
 
-        /**
-         * Generates HTML for True/False options.
-         */
-        function renderTrueFalseOptions(question, index) {
-            const name = `q${index}`;
-            return `
-                <div class="space-y-2">
-                    <input type="radio" id="${name}-true" name="${name}" value="True" class="hidden">
-                    <label for="${name}-true" class="radio-label">True</label>
+        /** Loads all necessary image assets before starting the game. */
+        async function loadAssets() {
+            try {
+                // Load Player Asset
+                assets.player = await loadImage(GAME_CONFIG.player.image);
 
-                    <input type="radio" id="${name}-false" name="${name}" value="False" class="hidden">
-                    <label for="${name}-false" class="radio-label">False</label>
-                </div>
-            `;
-        }
-
-        /**
-         * Generates HTML for Multiple Choice options.
-         */
-        function renderMultipleChoiceOptions(question, index) {
-            const name = `q${index}`;
-            const options = ['A', 'B', 'C', 'D']; // Assuming all MC have 4 options A, B, C, D
-            return `
-                <div class="space-y-2">
-                    ${question.options.map((optionText, optionIndex) => `
-                        <input type="radio" id="${name}-${options[optionIndex]}" name="${name}" value="${options[optionIndex]}" class="hidden">
-                        <label for="${name}-${options[optionIndex]}" class="radio-label">${optionText}</label>
-                    `).join('')}
-                </div>
-            `;
-        }
-
-        /**
-         * Handles the quiz submission, scoring, and rendering results.
-         */
-        function submitQuiz() {
-            let score = 0;
-            const feedbackContainer = document.getElementById('feedback-container');
-            feedbackContainer.innerHTML = ''; // Clear previous feedback
-
-            selectedQuestions.forEach((q, index) => {
-                const name = `q${index}`;
-                const questionElement = document.getElementById(`q-${index}`);
-                const feedbackElement = document.getElementById(`feedback-${index}`);
-
-                // Get the user's selected answer
-                const userAnswer = document.querySelector(`input[name="${name}"]:checked`)?.value;
-                const isCorrect = userAnswer === q.answer;
-
-                // Reset card classes
-                questionElement.classList.remove('score-correct', 'score-incorrect');
-
-                // Apply correct/incorrect styling and count score
-                if (isCorrect) {
-                    score++;
-                    questionElement.classList.add('score-correct');
-                } else if (userAnswer) {
-                    questionElement.classList.add('score-incorrect');
-                } else {
-                    // Handle unanswered
+                // Load Obstacle Assets
+                for (const obs of GAME_CONFIG.obstacles) {
+                    assets[obs.id] = await loadImage(obs.image);
                 }
 
-                // Show detailed feedback in the results section
-                const correctOptionText = q.type === 'Multiple Choice'
-                    ? q.options.find(opt => opt.startsWith(q.answer)).substring(3)
-                    : q.answer;
-
-                const feedbackHtml = `
-                    <div class="p-3 rounded-lg ${isCorrect ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300'} border">
-                        <p class="font-semibold">${index + 1}. ${q.question}</p>
-                        ${isCorrect
-                            ? `<p class="text-green-700 mt-1">✓ Correct! Your answer was: ${userAnswer}</p>`
-                            : `<p class="text-red-700 mt-1">✗ Incorrect. The correct answer was: <span class="font-bold">${correctOptionText}</span></p>`
-                        }
-                        <p class="text-sm text-gray-600 mt-2 italic">
-                            ${q.explanation}
-                        </p>
-                    </div>
-                `;
-                feedbackContainer.innerHTML += feedbackHtml;
-
-                // Disable all radio buttons after submission
-                document.querySelectorAll(`input[name="${name}"]`).forEach(input => input.disabled = true);
-            });
-
-            // Update score text
-            const percentage = ((score / NUM_QUESTIONS) * 100).toFixed(0);
-            document.getElementById('score-text').textContent = `You scored ${score} out of ${NUM_QUESTIONS} (${percentage}%)`;
-
-            // Display results and hide quiz form/submit button
-            document.getElementById('quiz-form').classList.add('hidden');
-            document.getElementById('submit-section').classList.add('hidden');
-            document.getElementById('results').classList.remove('hidden');
-
-            // Scroll to the results
-            document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+                assetsLoaded = true;
+                messageTitle.textContent = "PRESS SPACE OR TAP TO START";
+            } catch (error) {
+                console.error("Asset loading failed:", error);
+                messageTitle.textContent = "ASSET LOAD ERROR";
+                messageBody.textContent = "Check console for details.";
+            }
         }
 
-        // Start the quiz when the window loads
-        window.onload = startQuiz;
-    </script>
+        /** Handles canvas resizing to ensure responsiveness. */
+        function handleResize() {
+            // Keep a consistent aspect ratio or dynamic height based on the container width.
+            const containerWidth = canvas.parentElement.clientWidth;
+            canvas.width = containerWidth;
+            canvas.height = Math.min(containerWidth * (300 / 900), 400); // Max height 400px
 
+            // Recalculate GROUND_Y based on the new canvas height
+            GROUND_Y = canvas.height - 4; // 4 is the border width from CSS
+            if (player) {
+                player.y = player.groundY;
+            }
+        }
+        
+        // Initial setup calls
+        window.onload = () => {
+            handleResize();
+            loadAssets();
+            window.addEventListener('resize', handleResize);
+            document.addEventListener('keydown', handleKeyDown);
+            document.addEventListener('touchstart', handleTouch);
+            restartButton.addEventListener('click', startGame);
+        };
+
+
+        // --- 3. GAME CLASSES ---
+
+        class Player {
+            constructor(config) {
+                this.width = config.width;
+                this.height = config.height;
+                this.x = config.initialPosition.x;
+                this.groundY = GROUND_Y - this.height;
+                this.y = this.groundY;
+                this.jumpVelocity = 0;
+                this.isJumping = false;
+                this.jumpHeight = config.jumpHeight;
+                this.jumpSpeed = config.jumpSpeed;
+                this.image = assets.player;
+            }
+
+            draw() {
+                ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
+            }
+
+            update() {
+                if (this.isJumping) {
+                    this.y += this.jumpVelocity;
+                    this.jumpVelocity += 0.5; // Gravity
+
+                    // Land the player
+                    if (this.y >= this.groundY) {
+                        this.y = this.groundY;
+                        this.isJumping = false;
+                        this.jumpVelocity = 0;
+                    }
+                }
+            }
+
+            jump() {
+                if (!this.isJumping && isGameRunning) {
+                    this.isJumping = true;
+                    // Calculate the initial upward velocity needed to reach jumpHeight
+                    // V_initial = -sqrt(2 * g * h) where g=0.5 (our gravity) and h=jumpHeight
+                    this.jumpVelocity = -Math.sqrt(2 * 0.5 * this.jumpHeight);
+                }
+            }
+        }
+
+        class Obstacle {
+            constructor(config) {
+                this.config = config;
+                this.width = config.width;
+                this.height = config.height;
+                this.image = assets[config.id];
+                this.x = canvas.width; // Start off-screen right
+                this.y = GROUND_Y - this.height;
+                this.speedFactor = config.speedFactor;
+            }
+
+            draw() {
+                ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
+            }
+
+            update() {
+                this.x -= gameSpeed * this.speedFactor;
+            }
+
+            // Simple Axis-Aligned Bounding Box (AABB) collision check
+            checkCollision(player) {
+                return (
+                    this.x < player.x + player.width &&
+                    this.x + this.width > player.x &&
+                    this.y < player.y + player.height &&
+                    this.y + this.height > player.y
+                );
+            }
+        }
+
+
+        // --- 4. GAME LOGIC & LOOP ---
+
+        /** The main game loop function. */
+        function gameLoop() {
+            if (isGameOver) return;
+
+            // 1. Clear Canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 2. Update Game State
+            gameFrame++;
+            score += Math.floor(gameSpeed * 0.1); // Score based on speed/time
+            gameSpeed = Math.min(GAME_CONFIG.gameSettings.maxGameSpeed, gameSpeed + GAME_CONFIG.gameSettings.speedIncreaseRate);
+            scoreDisplay.textContent = `SCORE: ${score}`;
+
+            // 3. Spawn Obstacles
+            if (gameFrame > nextObstacleFrame) {
+                const randomConfig = GAME_CONFIG.obstacles[Math.floor(Math.random() * GAME_CONFIG.obstacles.length)];
+                obstacles.push(new Obstacle(randomConfig));
+                
+                // Set next spawn frame
+                const min = GAME_CONFIG.gameSettings.obstacleSpawnIntervalMin;
+                const max = GAME_CONFIG.gameSettings.obstacleSpawnIntervalMax;
+                nextObstacleFrame = gameFrame + min + Math.random() * (max - min);
+            }
+
+            // 4. Update & Draw Player
+            player.update();
+            player.draw();
+
+            // 5. Update & Draw Obstacles
+            obstacles.forEach((obstacle, index) => {
+                obstacle.update();
+                obstacle.draw();
+
+                // Check Collision
+                if (obstacle.checkCollision(player)) {
+                    // Collision detected! Game Over
+                    endGame();
+                }
+
+                // Remove obstacles that move off-screen
+                if (obstacle.x + obstacle.width < 0) {
+                    obstacles.splice(index, 1);
+                }
+            });
+            
+            // 6. Request Next Frame
+            requestAnimationFrame(gameLoop);
+        }
+
+        /** Resets and starts the game. */
+        function startGame() {
+            if (!assetsLoaded) return; // Wait for assets to load
+
+            // Reset state
+            isGameRunning = true;
+            isGameOver = false;
+            gameFrame = 0;
+            score = 0;
+            gameSpeed = GAME_CONFIG.gameSettings.initialGameSpeed;
+            obstacles = [];
+            
+            // Re-initialize player to ensure correct ground position on resize/restart
+            player = new Player(GAME_CONFIG.player);
+            handleResize(); 
+
+            messageBox.classList.add('opacity-0', 'pointer-events-none');
+            restartButton.classList.add('hidden');
+            
+            // Start the loop
+            gameLoop();
+        }
+
+        /** Stops the game and displays game over message. */
+        function endGame() {
+            isGameRunning = false;
+            isGameOver = true;
+
+            // Display Game Over screen
+            messageTitle.textContent = "GAME OVER!";
+            messageBody.textContent = `You achieved a Buyout Score of: ${score}`;
+            messageBox.classList.remove('opacity-0', 'pointer-events-none');
+            restartButton.classList.remove('hidden');
+        }
+
+        // --- 5. INPUT HANDLERS ---
+        
+        function handleKeyDown(event) {
+            if (event.code === 'Space') {
+                event.preventDefault(); // Prevent page scrolling
+                if (!isGameRunning && !isGameOver) {
+                    startGame();
+                } else if (isGameRunning) {
+                    player.jump();
+                }
+            }
+        }
+
+        function handleTouch(event) {
+            if (!isGameRunning && !isGameOver) {
+                startGame();
+            } else if (isGameRunning) {
+                player.jump();
+            }
+        }
+        
+    </script>
 </body>
 </html>
+
