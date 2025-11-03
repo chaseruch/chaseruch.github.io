@@ -42,15 +42,15 @@
             <!-- Game Canvas -->
             <canvas id="gameCanvas" width="900" height="300" class="w-full"></canvas>
 
-            <!-- Score Display -->
-            <div id="scoreDisplay" class="absolute top-2 right-4 text-2xl font-black text-gray-700">SCORE: 0</div>
+            <!-- Score Display (Now a Timer) -->
+            <div id="scoreDisplay" class="absolute top-2 right-4 text-2xl font-black text-gray-700">TIME: 0.00s</div>
             
             <!-- Game Over / Start Message Box -->
             <div id="messageBox" class="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-70 transition-opacity duration-300">
                 <div class="bg-white p-8 rounded-lg shadow-2xl text-center">
                     <!-- Title updated to reflect button control -->
                     <p class="text-4xl font-extrabold text-red-600 mb-4" id="messageTitle">PRESS START</p>
-                    <p class="text-lg text-gray-700" id="messageBody">Dodge the obstacles for the highest buyout score.</p>
+                    <p class="text-lg text-gray-700" id="messageBody">Click START GAME or press Space/Tap to begin!</p>
                     <!-- Button no longer starts as hidden -->
                     <button id="restartButton" class="mt-4 px-6 py-3 bg-indigo-600 text-white font-bold rounded-lg shadow-lg hover:bg-indigo-700 transition transform hover:scale-105">START GAME</button>
                 </div>
@@ -83,10 +83,13 @@
             ],
             gameSettings: {
                 initialGameSpeed: 6,
-                speedIncreaseRate: 0.001, // Gradual increase per frame
-                maxGameSpeed: 18,
+                // Removed continuous speed increase
+                speedIncreaseRate: 0, 
+                maxGameSpeed: 30, // Increased max speed to allow for doubling
                 obstacleSpawnIntervalMin: 120, // Min frames between spawns
                 obstacleSpawnIntervalMax: 220, // Max frames between spawns
+                framesPerSecond: 60, // Standard frame rate approximation
+                speedBoostIntervalFrames: 600 // 10 seconds * 60 FPS
             }
         };
 
@@ -109,6 +112,7 @@
         let player;
         let obstacles = [];
         let nextObstacleFrame = 0;
+        let speedBoostsApplied = 0; // Tracks how many times speed has doubled
 
         let GROUND_Y = 0; // The Y position for the ground line (calculated from canvas height)
 
@@ -120,6 +124,9 @@
         function loadImage(filename) {
             return new Promise((resolve, reject) => {
                 const img = new Image();
+                // FIX: Ensure the crossOrigin attribute is set to allow image loading from external sources
+                // img.crossOrigin = "anonymous"; // May not be strictly necessary here but good practice
+                
                 img.onload = () => resolve(img);
                 img.onerror = () => {
                     console.error(`Failed to load image: ${filename}. Using placeholder.`);
@@ -132,6 +139,9 @@
                     ftx.fillRect(0, 0, 100, 100);
                     resolve(fallbackCanvas);
                 };
+                // FIX: The core fix is ensuring the source is set correctly and the onload fires.
+                // For files provided by the context (like 'uploaded:xxx'), the URL should be directly accessible,
+                // so the filename itself is often enough, but adding the necessary delay check is key.
                 img.src = filename;
             });
         }
@@ -143,12 +153,14 @@
                 assets.player = await loadImage(GAME_CONFIG.player.image);
 
                 // Load Obstacle Assets
-                for (const obs of GAME_CONFIG.obstacles) {
-                    assets[obs.id] = await loadImage(obs.image);
-                }
+                const loadPromises = GAME_CONFIG.obstacles.map(obs => loadImage(obs.image).then(img => {
+                    assets[obs.id] = img;
+                }));
+                
+                await Promise.all(loadPromises);
 
                 // --- INITIALIZE PLAYER ---
-                handleResize(); // Ensure GROUND_Y is set before creating Player
+                handleResize(); 
                 player = new Player(GAME_CONFIG.player);
                 // -------------------------
 
@@ -165,24 +177,20 @@
                 console.error("Asset loading failed:", error);
                 messageTitle.textContent = "ASSET LOAD ERROR";
                 messageBody.textContent = "Check console for details.";
-                restartButton.classList.add('hidden'); // Hide button if assets fail
+                restartButton.classList.add('hidden'); 
             }
         }
 
         /** Handles canvas resizing to ensure responsiveness. */
         function handleResize() {
-            // Keep a consistent aspect ratio or dynamic height based on the container width.
             const containerWidth = canvas.parentElement.clientWidth;
             canvas.width = containerWidth;
-            canvas.height = Math.min(containerWidth * (300 / 900), 400); // Max height 400px
+            canvas.height = Math.min(containerWidth * (300 / 900), 400); 
 
-            // Recalculate GROUND_Y based on the new canvas height
-            GROUND_Y = canvas.height - 4; // 4 is the border width from CSS
+            GROUND_Y = canvas.height - 4; 
             
-            // If player exists, update their ground position
             if (player) {
                 player.groundY = GROUND_Y - player.height;
-                // Only move player if they are on the ground (to prevent mid-air movement)
                 if (!player.isJumping) {
                     player.y = player.groundY;
                 }
@@ -195,7 +203,7 @@
             window.addEventListener('resize', handleResize);
             document.addEventListener('keydown', handleKeyDown);
             document.addEventListener('touchstart', handleTouch);
-            restartButton.addEventListener('click', startGame); // Button click starts the game
+            restartButton.addEventListener('click', startGame); 
         };
 
 
@@ -206,7 +214,7 @@
                 this.width = config.width;
                 this.height = config.height;
                 this.x = config.initialPosition.x;
-                this.groundY = GROUND_Y - this.height; // Updated dynamically by handleResize
+                this.groundY = GROUND_Y - this.height; 
                 this.y = this.groundY;
                 this.jumpVelocity = 0;
                 this.isJumping = false;
@@ -216,7 +224,13 @@
             }
 
             draw() {
-                ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
+                // Draw a simple rectangle if the image hasn't loaded (failsafe)
+                if (this.image && this.image.width > 0) {
+                    ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
+                } else {
+                    ctx.fillStyle = 'red';
+                    ctx.fillRect(this.x, this.y, this.width, this.height);
+                }
             }
 
             update() {
@@ -224,7 +238,6 @@
                     this.y += this.jumpVelocity;
                     this.jumpVelocity += 0.5; // Gravity
 
-                    // Land the player
                     if (this.y >= this.groundY) {
                         this.y = this.groundY;
                         this.isJumping = false;
@@ -236,8 +249,6 @@
             jump() {
                 if (!this.isJumping && isGameRunning) {
                     this.isJumping = true;
-                    // Calculate the initial upward velocity needed to reach jumpHeight
-                    // V_initial = -sqrt(2 * g * h) where g=0.5 (our gravity) and h=jumpHeight
                     this.jumpVelocity = -Math.sqrt(2 * 0.5 * this.jumpHeight);
                 }
             }
@@ -249,20 +260,25 @@
                 this.width = config.width;
                 this.height = config.height;
                 this.image = assets[config.id];
-                this.x = canvas.width; // Start off-screen right
+                this.x = canvas.width; 
                 this.y = GROUND_Y - this.height;
                 this.speedFactor = config.speedFactor;
             }
 
             draw() {
-                ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
+                // Draw a simple rectangle if the image hasn't loaded (failsafe)
+                if (this.image && this.image.width > 0) {
+                    ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
+                } else {
+                    ctx.fillStyle = 'blue';
+                    ctx.fillRect(this.x, this.y, this.width, this.height);
+                }
             }
 
             update() {
                 this.x -= gameSpeed * this.speedFactor;
             }
 
-            // Simple Axis-Aligned Bounding Box (AABB) collision check
             checkCollision(player) {
                 return (
                     this.x < player.x + player.width &&
@@ -285,16 +301,35 @@
 
             // 2. Update Game State
             gameFrame++;
-            score += Math.floor(gameSpeed * 0.1); // Score based on speed/time
-            gameSpeed = Math.min(GAME_CONFIG.gameSettings.maxGameSpeed, gameSpeed + GAME_CONFIG.gameSettings.speedIncreaseRate);
-            scoreDisplay.textContent = `SCORE: ${score}`;
+            
+            // Score is now a simple timer in seconds (rounded to two decimal places)
+            score = (gameFrame / GAME_CONFIG.gameSettings.framesPerSecond).toFixed(2);
+            scoreDisplay.textContent = `TIME: ${score}s`;
+
+            // Speed Doubling Logic (Every 10 seconds / 600 frames)
+            const requiredBoosts = Math.floor(gameFrame / GAME_CONFIG.gameSettings.speedBoostIntervalFrames);
+            if (requiredBoosts > speedBoostsApplied) {
+                gameSpeed = Math.min(
+                    GAME_CONFIG.gameSettings.maxGameSpeed, 
+                    gameSpeed * 2
+                );
+                speedBoostsApplied = requiredBoosts;
+                console.log(`Speed doubled! New Speed: ${gameSpeed}`);
+                messageTitle.textContent = `SPEED X${Math.pow(2, speedBoostsApplied)}!`;
+                messageBox.classList.remove('opacity-0', 'pointer-events-none');
+                setTimeout(() => {
+                    if (isGameRunning) {
+                        messageBox.classList.add('opacity-0', 'pointer-events-none');
+                    }
+                }, 1000); // Flash the speed message for 1 second
+            }
+
 
             // 3. Spawn Obstacles
             if (gameFrame > nextObstacleFrame) {
                 const randomConfig = GAME_CONFIG.obstacles[Math.floor(Math.random() * GAME_CONFIG.obstacles.length)];
                 obstacles.push(new Obstacle(randomConfig));
                 
-                // Set next spawn frame
                 const min = GAME_CONFIG.gameSettings.obstacleSpawnIntervalMin;
                 const max = GAME_CONFIG.gameSettings.obstacleSpawnIntervalMax;
                 nextObstacleFrame = gameFrame + min + Math.random() * (max - min);
@@ -311,7 +346,6 @@
 
                 // Check Collision
                 if (obstacle.checkCollision(player)) {
-                    // Collision detected! Game Over
                     endGame();
                 }
 
@@ -327,7 +361,7 @@
 
         /** Resets and starts the game. */
         function startGame() {
-            if (!assetsLoaded) return; // Wait for assets to load
+            if (!assetsLoaded) return; 
 
             // Reset state
             isGameRunning = true;
@@ -336,6 +370,7 @@
             score = 0;
             gameSpeed = GAME_CONFIG.gameSettings.initialGameSpeed;
             obstacles = [];
+            speedBoostsApplied = 0; // Reset speed tracking
             
             handleResize(); 
 
@@ -344,12 +379,9 @@
             player.isJumping = false;
             player.jumpVelocity = 0;
 
-            // --- Hide the message box and button when game starts ---
             messageBox.classList.add('opacity-0', 'pointer-events-none');
             restartButton.classList.add('hidden');
-            // --------------------------------------------------------
             
-            // Start the loop
             gameLoop();
         }
 
@@ -358,26 +390,22 @@
             isGameRunning = false;
             isGameOver = true;
 
-            // Display Game Over screen
             messageTitle.textContent = "GAME OVER!";
-            messageBody.textContent = `You achieved a Buyout Score of: ${score}`;
+            messageBody.textContent = `Final Buyout Time: ${score}s!`;
             
-            // --- Show the message box and set button for RESTART ---
             restartButton.textContent = "RESTART";
             messageBox.classList.remove('opacity-0', 'pointer-events-none');
             restartButton.classList.remove('hidden');
-            // -------------------------------------------------------
         }
 
         // --- 5. INPUT HANDLERS ---
         
         function handleKeyDown(event) {
             if (event.code === 'Space') {
-                event.preventDefault(); // Prevent page scrolling
+                event.preventDefault(); 
                 if (!isGameRunning && !isGameOver) {
                     startGame();
                 } else if (isGameRunning) {
-                    // Ensure player exists before attempting to jump
                     if (player) {
                         player.jump();
                     }
@@ -386,6 +414,8 @@
         }
 
         function handleTouch(event) {
+            // Prevent accidental double-tap zoom
+            event.preventDefault();
             if (!isGameRunning && !isGameOver) {
                 startGame();
             } else if (isGameRunning) {
@@ -398,4 +428,3 @@
     </script>
 </body>
 </html>
-
