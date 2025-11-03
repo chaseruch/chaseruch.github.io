@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Buyout Bash - The Running Game</title>
+    <title>Buyout Bash - Retro Edition</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Use Inter font -->
@@ -19,13 +19,13 @@
             max-width: 1024px;
             margin-left: auto;
             margin-right: auto;
-            overflow: hidden; /* Prevent images from sticking out */
+            overflow: hidden; 
             background-color: #fff;
         }
         canvas {
             display: block;
             background-color: #f9fafb; /* Light background for the track */
-            border-bottom: 4px solid #374151; /* The ground line */
+            border-bottom: 4px solid #1f2937; /* Dark gray ground line */
             touch-action: manipulation; /* Improves touch handling */
         }
     </style>
@@ -34,7 +34,7 @@
 
     <div id="app" class="game-container rounded-xl">
         <div class="p-4 bg-gray-900 text-white rounded-t-xl">
-            <h1 class="text-3xl font-extrabold tracking-tight">🏈 Buyout Bash</h1>
+            <h1 class="text-3xl font-extrabold tracking-tight">🕹️ Buyout Bash: Retro Edition</h1>
             <p class="text-sm opacity-75">Dodge those buyouts! Press **Space** or **Tap** to Jump.</p>
         </div>
         
@@ -42,16 +42,14 @@
             <!-- Game Canvas -->
             <canvas id="gameCanvas" width="900" height="300" class="w-full"></canvas>
 
-            <!-- Score Display (Now a Timer) -->
+            <!-- Score Display (Timer) -->
             <div id="scoreDisplay" class="absolute top-2 right-4 text-2xl font-black text-gray-700">TIME: 0.00s</div>
             
             <!-- Game Over / Start Message Box -->
             <div id="messageBox" class="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-70 transition-opacity duration-300">
                 <div class="bg-white p-8 rounded-lg shadow-2xl text-center">
-                    <!-- Title updated to reflect button control -->
                     <p class="text-4xl font-extrabold text-red-600 mb-4" id="messageTitle">PRESS START</p>
                     <p class="text-lg text-gray-700" id="messageBody">Click START GAME or press Space/Tap to begin!</p>
-                    <!-- Button no longer starts as hidden -->
                     <button id="restartButton" class="mt-4 px-6 py-3 bg-indigo-600 text-white font-bold rounded-lg shadow-lg hover:bg-indigo-700 transition transform hover:scale-105">START GAME</button>
                 </div>
             </div>
@@ -60,37 +58,32 @@
 
     <!-- The main game script -->
     <script>
-        // --- 1. GAME CONFIGURATION (Based on JSON) ---
+        // --- 1. GAME CONFIGURATION ---
         const GAME_CONFIG = {
             gameTitle: "Buyout Bash",
             player: {
-                id: "player_character",
-                name: "Matt Rhule",
-                // --- UPDATED FOR GITHUB PAGES: Using local file path ---
-                image: "rhule_headshot.jpg",
-                initialPosition: { x: 100, y: 500 }, 
-                width: 80,
-                height: 80, 
+                width: 30,
+                height: 50,
+                x: 100, 
                 jumpHeight: 180,
-                jumpSpeed: 10
+                jumpSpeed: 10,
+                color: '#10b981' // Green
             },
             obstacles: [
-                // --- UPDATED FOR GITHUB PAGES: Using local file paths ---
-                { id: "obstacle_pennstate", name: "PSU Nittany Lion", image: "psu_logo.png", width: 70, height: 70, type: "ground", speedFactor: 1.0 },
-                { id: "obstacle_lsu", name: "LSU Tiger", image: "lsu_tiger.png", width: 80, height: 80, type: "ground", speedFactor: 1.1 },
-                { id: "obstacle_auburn", name: "Auburn AU", image: "auburn_logo.png", width: 60, height: 60, type: "ground", speedFactor: 1.05 },
-                { id: "obstacle_ucla", name: "UCLA Bruins", image: "ucla_bear.jpg", width: 90, height: 75, type: "ground", speedFactor: 1.15 },
-                { id: "obstacle_florida", name: "Florida Gators", image: "florida_logo.jpg", width: 95, height: 65, type: "ground", speedFactor: 1.2 }
-                // -----------------------------------------------------
+                // Obstacles drawn as simple colored rectangles with black borders
+                { id: "obstacle_pennstate", name: "PSU", width: 30, height: 60, speedFactor: 1.0, color: '#102E50' }, // Navy Blue
+                { id: "obstacle_lsu", name: "LSU", width: 45, height: 35, speedFactor: 1.1, color: '#461D7F' },    // Purple
+                { id: "obstacle_auburn", name: "Auburn", width: 35, height: 50, speedFactor: 1.05, color: '#03214A' }, // Auburn Blue
+                { id: "obstacle_ucla", name: "UCLA", width: 50, height: 40, speedFactor: 1.15, color: '#2D68C4' },    // UCLA Blue
+                { id: "obstacle_florida", name: "Florida", width: 40, height: 65, speedFactor: 1.2, color: '#0021A5' } // Royal Blue
             ],
             gameSettings: {
                 initialGameSpeed: 6,
-                speedIncreaseRate: 0, 
                 maxGameSpeed: 30, 
                 obstacleSpawnIntervalMin: 70, 
                 obstacleSpawnIntervalMax: 140, 
                 framesPerSecond: 60, 
-                speedBoostIntervalFrames: 600 
+                speedBoostIntervalFrames: 600 // Doubles speed every 10 seconds (600 frames)
             }
         };
 
@@ -108,85 +101,24 @@
         let gameFrame = 0;
         let score = 0;
         let gameSpeed = GAME_CONFIG.gameSettings.initialGameSpeed;
-        let assetsLoaded = false;
-        const assets = {};
         let player;
         let obstacles = [];
         let nextObstacleFrame = 0;
         let speedBoostsApplied = 0; 
-
         let GROUND_Y = 0; 
-
-        /**
-         * Converts the file ID into a useable image element.
-         * @param {string} filename The name of the file to load.
-         * @returns {Promise<HTMLImageElement>} A promise that resolves to an image element.
-         */
-        function loadImage(filename) {
-            return new Promise((resolve, reject) => {
-                const img = new Image();
-                
-                img.onload = () => resolve(img);
-                img.onerror = () => {
-                    console.error(`Failed to load image: ${filename}. Using placeholder.`);
-                    // Fallback: Create a simple grey box if the image fails to load
-                    const fallbackCanvas = document.createElement('canvas');
-                    fallbackCanvas.width = 100;
-                    fallbackCanvas.height = 100;
-                    const ftx = fallbackCanvas.getContext('2d');
-                    ftx.fillStyle = '#9ca3af'; // Gray
-                    ftx.fillRect(0, 0, 100, 100);
-                    resolve(fallbackCanvas);
-                };
-                // With local file paths, this directly requests the file from the server
-                img.src = filename;
-            });
-        }
-
-        /** Loads all necessary image assets before starting the game. */
-        async function loadAssets() {
-            try {
-                // Load Player Asset
-                assets.player = await loadImage(GAME_CONFIG.player.image);
-
-                // Load Obstacle Assets
-                const loadPromises = GAME_CONFIG.obstacles.map(obs => loadImage(obs.image).then(img => {
-                    assets[obs.id] = img;
-                }));
-                
-                await Promise.all(loadPromises);
-
-                // --- INITIALIZE PLAYER ---
-                handleResize(); 
-                player = new Player(GAME_CONFIG.player);
-                // -------------------------
-
-                assetsLoaded = true;
-                
-                // --- INITIAL UI SETUP FOR START BUTTON ---
-                messageTitle.textContent = "WELCOME TO BUYOUT BASH";
-                messageBody.textContent = "Click START GAME or press Space/Tap to begin!";
-                restartButton.textContent = "START GAME"; 
-                restartButton.classList.remove('hidden'); 
-                // -----------------------------------------
-
-            } catch (error) {
-                console.error("Asset loading failed:", error);
-                messageTitle.textContent = "ASSET LOAD ERROR";
-                messageBody.textContent = "Check console for details. Make sure images are in the same folder as index.html.";
-                restartButton.classList.add('hidden'); 
-            }
-        }
 
         /** Handles canvas resizing to ensure responsiveness. */
         function handleResize() {
             const containerWidth = canvas.parentElement.clientWidth;
             canvas.width = containerWidth;
+            // Maintain a nice aspect ratio
             canvas.height = Math.min(containerWidth * (300 / 900), 400); 
 
+            // Calculate the ground line based on the new canvas height
             GROUND_Y = canvas.height - 4; 
             
             if (player) {
+                // Adjust player's floor position
                 player.groundY = GROUND_Y - player.height;
                 if (!player.isJumping) {
                     player.y = player.groundY;
@@ -196,7 +128,14 @@
         
         // Initial setup calls
         window.onload = () => {
-            loadAssets();
+            handleResize();
+            player = new Player(GAME_CONFIG.player);
+
+            // Initial UI Setup
+            messageTitle.textContent = "WELCOME TO BUYOUT BASH";
+            messageBody.textContent = "Click START GAME or press Space/Tap to begin!";
+            restartButton.textContent = "START GAME"; 
+
             window.addEventListener('resize', handleResize);
             document.addEventListener('keydown', handleKeyDown);
             document.addEventListener('touchstart', handleTouch);
@@ -210,30 +149,39 @@
             constructor(config) {
                 this.width = config.width;
                 this.height = config.height;
-                this.x = config.initialPosition.x;
+                this.x = config.x;
                 this.groundY = GROUND_Y - this.height; 
                 this.y = this.groundY;
                 this.jumpVelocity = 0;
                 this.isJumping = false;
                 this.jumpHeight = config.jumpHeight;
                 this.jumpSpeed = config.jumpSpeed;
-                this.image = assets.player;
+                this.color = config.color;
             }
 
             draw() {
-                // Draw a simple rectangle if the image hasn't loaded (failsafe)
-                if (this.image && this.image.width > 0) {
-                    ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
-                } else {
-                    ctx.fillStyle = 'red';
-                    ctx.fillRect(this.x, this.y, this.width, this.height);
-                }
+                // The running effect (flickering for retro feel)
+                const runOffset = gameFrame % 10 < 5 ? 0 : 2; 
+
+                // Draw Body (lower block)
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.x, this.y + runOffset, this.width, this.height);
+
+                // Draw Head (upper small block) for definition
+                ctx.fillStyle = '#10b981'; // Same color, just a smaller top piece
+                ctx.fillRect(this.x + this.width / 4, this.y - 10 + runOffset, this.width / 2, 10);
+
+                // Add a black border for that pixel/retro look
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(this.x, this.y + runOffset, this.width, this.height);
+                ctx.strokeRect(this.x + this.width / 4, this.y - 10 + runOffset, this.width / 2, 10);
             }
 
             update() {
                 if (this.isJumping) {
                     this.y += this.jumpVelocity;
-                    // Increased gravity for quicker descent
+                    // Gravity (brings runner down quickly)
                     this.jumpVelocity += 0.8; 
 
                     if (this.y >= this.groundY) {
@@ -247,7 +195,7 @@
             jump() {
                 if (!this.isJumping && isGameRunning) {
                     this.isJumping = true;
-                    // Note: Initial jump velocity calculation uses the new gravity value (0.8)
+                    // Calculate initial jump velocity based on desired height and gravity
                     this.jumpVelocity = -Math.sqrt(2 * 0.8 * this.jumpHeight);
                 }
             }
@@ -258,20 +206,21 @@
                 this.config = config;
                 this.width = config.width;
                 this.height = config.height;
-                this.image = assets[config.id];
+                this.color = config.color;
                 this.x = canvas.width; 
                 this.y = GROUND_Y - this.height;
                 this.speedFactor = config.speedFactor;
             }
 
             draw() {
-                // Draw a simple rectangle if the image hasn't loaded (failsafe)
-                if (this.image && this.image.width > 0) {
-                    ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
-                } else {
-                    ctx.fillStyle = 'blue';
-                    ctx.fillRect(this.x, this.y, this.width, this.height);
-                }
+                // Draw the obstacle rectangle
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+
+                // Add a black border for the retro look
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(this.x, this.y, this.width, this.height);
             }
 
             update() {
@@ -279,6 +228,7 @@
             }
 
             checkCollision(player) {
+                // Collision detection logic
                 return (
                     this.x < player.x + player.width &&
                     this.x + this.width > player.x &&
@@ -301,7 +251,7 @@
             // 2. Update Game State
             gameFrame++;
             
-            // Score is now a simple timer in seconds (rounded to two decimal places)
+            // Score as Timer in seconds
             score = (gameFrame / GAME_CONFIG.gameSettings.framesPerSecond).toFixed(2);
             scoreDisplay.textContent = `TIME: ${score}s`;
 
@@ -313,14 +263,15 @@
                     gameSpeed * 2
                 );
                 speedBoostsApplied = requiredBoosts;
-                console.log(`Speed doubled! New Speed: ${gameSpeed}`);
+                
+                // Flash message on speed increase
                 messageTitle.textContent = `SPEED X${Math.pow(2, speedBoostsApplied)}!`;
                 messageBox.classList.remove('opacity-0', 'pointer-events-none');
                 setTimeout(() => {
                     if (isGameRunning) {
                         messageBox.classList.add('opacity-0', 'pointer-events-none');
                     }
-                }, 1000); // Flash the speed message for 1 second
+                }, 1000); 
             }
 
 
@@ -360,8 +311,6 @@
 
         /** Resets and starts the game. */
         function startGame() {
-            if (!assetsLoaded) return; 
-
             // Reset state
             isGameRunning = true;
             isGameOver = false;
@@ -369,7 +318,7 @@
             score = 0;
             gameSpeed = GAME_CONFIG.gameSettings.initialGameSpeed;
             obstacles = [];
-            speedBoostsApplied = 0; // Reset speed tracking
+            speedBoostsApplied = 0; 
             
             handleResize(); 
 
@@ -378,11 +327,11 @@
             player.isJumping = false;
             player.jumpVelocity = 0;
 
-            // FIX: Ensure score display resets immediately
+            // Ensure score display resets immediately
             scoreDisplay.textContent = 'TIME: 0.00s'; 
 
             messageBox.classList.add('opacity-0', 'pointer-events-none');
-            restartButton.classList.add('hidden');
+            restartButton.textContent = "RESTART";
             
             gameLoop();
         }
@@ -397,7 +346,6 @@
             
             restartButton.textContent = "RESTART";
             messageBox.classList.remove('opacity-0', 'pointer-events-none');
-            restartButton.classList.remove('hidden');
         }
 
         // --- 5. INPUT HANDLERS ---
@@ -430,4 +378,5 @@
     </script>
 </body>
 </html>
+
 
