@@ -108,7 +108,7 @@
         let obstacles = [];
         let nextObstacleFrame = 0;
 
-        const GROUND_Y = 0; // The Y position for the ground line (calculated from canvas height)
+        let GROUND_Y = 0; // The Y position for the ground line (calculated from canvas height)
 
         /**
          * Converts the file ID into a useable image element.
@@ -145,6 +145,11 @@
                     assets[obs.id] = await loadImage(obs.image);
                 }
 
+                // --- NEW: Initialize player once assets are ready ---
+                handleResize(); // Ensure GROUND_Y is set before creating Player
+                player = new Player(GAME_CONFIG.player);
+                // ---------------------------------------------------
+
                 assetsLoaded = true;
                 messageTitle.textContent = "PRESS SPACE OR TAP TO START";
             } catch (error) {
@@ -163,14 +168,20 @@
 
             // Recalculate GROUND_Y based on the new canvas height
             GROUND_Y = canvas.height - 4; // 4 is the border width from CSS
+            
+            // If player exists, update their ground position
             if (player) {
-                player.y = player.groundY;
+                player.groundY = GROUND_Y - player.height;
+                // Only move player if they are on the ground (to prevent mid-air movement)
+                if (!player.isJumping) {
+                    player.y = player.groundY;
+                }
             }
         }
         
         // Initial setup calls
         window.onload = () => {
-            handleResize();
+            // Note: handleResize is called inside loadAssets to ensure player initialization is correct.
             loadAssets();
             window.addEventListener('resize', handleResize);
             document.addEventListener('keydown', handleKeyDown);
@@ -186,7 +197,7 @@
                 this.width = config.width;
                 this.height = config.height;
                 this.x = config.initialPosition.x;
-                this.groundY = GROUND_Y - this.height;
+                this.groundY = GROUND_Y - this.height; // Updated dynamically by handleResize
                 this.y = this.groundY;
                 this.jumpVelocity = 0;
                 this.isJumping = false;
@@ -317,9 +328,12 @@
             gameSpeed = GAME_CONFIG.gameSettings.initialGameSpeed;
             obstacles = [];
             
-            // Re-initialize player to ensure correct ground position on resize/restart
-            player = new Player(GAME_CONFIG.player);
             handleResize(); 
+
+            // Reset player position and state for the new game
+            player.y = player.groundY; 
+            player.isJumping = false;
+            player.jumpVelocity = 0;
 
             messageBox.classList.add('opacity-0', 'pointer-events-none');
             restartButton.classList.add('hidden');
@@ -344,11 +358,15 @@
         
         function handleKeyDown(event) {
             if (event.code === 'Space') {
+                console.log("Spacebar pressed. isGameRunning:", isGameRunning); // DEBUGGING LOG
                 event.preventDefault(); // Prevent page scrolling
                 if (!isGameRunning && !isGameOver) {
                     startGame();
                 } else if (isGameRunning) {
-                    player.jump();
+                    // Ensure player exists before attempting to jump
+                    if (player) {
+                        player.jump();
+                    }
                 }
             }
         }
@@ -357,11 +375,12 @@
             if (!isGameRunning && !isGameOver) {
                 startGame();
             } else if (isGameRunning) {
-                player.jump();
+                if (player) {
+                    player.jump();
+                }
             }
         }
         
     </script>
 </body>
 </html>
-
