@@ -48,9 +48,11 @@
             <!-- Game Over / Start Message Box -->
             <div id="messageBox" class="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-70 transition-opacity duration-300">
                 <div class="bg-white p-8 rounded-lg shadow-2xl text-center">
-                    <p class="text-4xl font-extrabold text-red-600 mb-4" id="messageTitle">PRESS SPACE TO START</p>
+                    <!-- Title updated to reflect button control -->
+                    <p class="text-4xl font-extrabold text-red-600 mb-4" id="messageTitle">PRESS START</p>
                     <p class="text-lg text-gray-700" id="messageBody">Dodge the obstacles for the highest buyout score.</p>
-                    <button id="restartButton" class="hidden mt-4 px-6 py-3 bg-indigo-600 text-white font-bold rounded-lg shadow-lg hover:bg-indigo-700 transition transform hover:scale-105">RESTART</button>
+                    <!-- Button no longer starts as hidden -->
+                    <button id="restartButton" class="mt-4 px-6 py-3 bg-indigo-600 text-white font-bold rounded-lg shadow-lg hover:bg-indigo-700 transition transform hover:scale-105">START GAME</button>
                 </div>
             </div>
         </div>
@@ -145,17 +147,25 @@
                     assets[obs.id] = await loadImage(obs.image);
                 }
 
-                // --- NEW: Initialize player once assets are ready ---
+                // --- INITIALIZE PLAYER ---
                 handleResize(); // Ensure GROUND_Y is set before creating Player
                 player = new Player(GAME_CONFIG.player);
-                // ---------------------------------------------------
+                // -------------------------
 
                 assetsLoaded = true;
-                messageTitle.textContent = "PRESS SPACE OR TAP TO START";
+                
+                // --- INITIAL UI SETUP FOR START BUTTON ---
+                messageTitle.textContent = "WELCOME TO BUYOUT BASH";
+                messageBody.textContent = "Click START GAME or press Space/Tap to begin!";
+                restartButton.textContent = "START GAME"; 
+                restartButton.classList.remove('hidden'); 
+                // -----------------------------------------
+
             } catch (error) {
                 console.error("Asset loading failed:", error);
                 messageTitle.textContent = "ASSET LOAD ERROR";
                 messageBody.textContent = "Check console for details.";
+                restartButton.classList.add('hidden'); // Hide button if assets fail
             }
         }
 
@@ -181,12 +191,11 @@
         
         // Initial setup calls
         window.onload = () => {
-            // Note: handleResize is called inside loadAssets to ensure player initialization is correct.
             loadAssets();
             window.addEventListener('resize', handleResize);
             document.addEventListener('keydown', handleKeyDown);
             document.addEventListener('touchstart', handleTouch);
-            restartButton.addEventListener('click', startGame);
+            restartButton.addEventListener('click', startGame); // Button click starts the game
         };
 
 
@@ -335,8 +344,10 @@
             player.isJumping = false;
             player.jumpVelocity = 0;
 
+            // --- Hide the message box and button when game starts ---
             messageBox.classList.add('opacity-0', 'pointer-events-none');
             restartButton.classList.add('hidden');
+            // --------------------------------------------------------
             
             // Start the loop
             gameLoop();
@@ -350,15 +361,18 @@
             // Display Game Over screen
             messageTitle.textContent = "GAME OVER!";
             messageBody.textContent = `You achieved a Buyout Score of: ${score}`;
+            
+            // --- Show the message box and set button for RESTART ---
+            restartButton.textContent = "RESTART";
             messageBox.classList.remove('opacity-0', 'pointer-events-none');
             restartButton.classList.remove('hidden');
+            // -------------------------------------------------------
         }
 
         // --- 5. INPUT HANDLERS ---
         
         function handleKeyDown(event) {
             if (event.code === 'Space') {
-                console.log("Spacebar pressed. isGameRunning:", isGameRunning); // DEBUGGING LOG
                 event.preventDefault(); // Prevent page scrolling
                 if (!isGameRunning && !isGameOver) {
                     startGame();
@@ -384,3 +398,4 @@
     </script>
 </body>
 </html>
+
