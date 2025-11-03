@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Buyout Bash - Image Edition</title>
+    <title>Buyout Bash - Pixel Suitors</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -35,8 +35,8 @@
 
     <div id="app" class="game-container rounded-xl">
         <div class="p-4 bg-gray-900 text-white rounded-t-xl">
-            <h1 class="text-3xl font-extrabold tracking-tight">🏈 Buyout Bash: Image Edition</h1>
-            <p class="text-sm opacity-75">Dodge those buyouts! Press **Space** or **Tap** to Jump.</p>
+            <h1 class="text-3xl font-extrabold tracking-tight">🏈 Buyout Bash: Pixel Suitors</h1>
+            <p class="text-sm opacity-75">Dodge the agents! Press **Space** or **Tap** to Jump.</p>
         </div>
         
         <div class="relative">
@@ -49,9 +49,9 @@
             <!-- Game Over / Start Message Box -->
             <div id="messageBox" class="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-70 transition-opacity duration-300">
                 <div class="bg-white p-8 rounded-lg shadow-2xl text-center">
-                    <p class="text-4xl font-extrabold text-red-600 mb-4" id="messageTitle">LOADING ASSETS...</p>
-                    <p class="text-lg text-gray-700" id="messageBody">Please wait for images to load...</p>
-                    <button id="restartButton" class="mt-4 px-6 py-3 bg-indigo-600 text-white font-bold rounded-lg shadow-lg hover:bg-indigo-700 transition transform hover:scale-105" disabled>START GAME</button>
+                    <p class="text-4xl font-extrabold text-red-600 mb-4" id="messageTitle">PRESS START</p>
+                    <p class="text-lg text-gray-700" id="messageBody">Click START GAME or press Space/Tap to begin!</p>
+                    <button id="restartButton" class="mt-4 px-6 py-3 bg-indigo-600 text-white font-bold rounded-lg shadow-lg hover:bg-indigo-700 transition transform hover:scale-105">START GAME</button>
                 </div>
             </div>
         </div>
@@ -60,25 +60,38 @@
     <!-- The main game script -->
     <script>
         // --- 1. GAME CONFIGURATION ---
-        // Using the Content Fetch IDs for reliable display within this environment
+        const PIXEL_SIZE = 4; // Base pixel size for the retro look
+
         const GAME_CONFIG = {
             gameTitle: "Buyout Bash",
             player: {
-                id: "player_character",
-                name: "Matt Rhule",
-                imagePath: "uploaded:rhule_headshot.jpg-e0f950d9-c647-4f81-a791-8b71e281075d",
-                width: 80, 
-                height: 120, 
-                x: 100,
+                width: 40, // Collision width 
+                height: 56, // Collision height 
+                x: 100, 
                 jumpHeight: 180,
-                jumpSpeed: 10
+                jumpSpeed: 10,
             },
             obstacles: [
-                { id: "obstacle_pennstate", name: "Penn State", imagePath: "uploaded:psu_logo.png-66bbe6ee-ad3b-4d79-9c7b-5ab7a788baed", width: 70, height: 70, speedFactor: 1.0 },
-                { id: "obstacle_lsu", name: "LSU", imagePath: "uploaded:lsu_tiger.png-c04118d0-5d0f-4bdf-a6d4-8aece67c49d2", width: 90, height: 90, speedFactor: 1.1 },
-                { id: "obstacle_auburn", name: "Auburn", imagePath: "uploaded:auburn_logo.png-c6101724-ed52-4002-8f1b-3c024f746b18", width: 60, height: 60, speedFactor: 1.05 },
-                { id: "obstacle_ucla", name: "UCLA", imagePath: "uploaded:ucla_bear.jpg-c4ea4cae-423f-4dae-b8e0-6bf1fc50d636", width: 100, height: 100, speedFactor: 1.15 },
-                { id: "obstacle_florida", name: "Florida", imagePath: "uploaded:florida_logo.jpg-777b0f5b-340b-4a11-984b-5156f7bc0a81", width: 80, height: 80, speedFactor: 1.2 }
+                // Suit Obstacle 1: Auburn (Blue Tie)
+                { id: "obstacle_auburn", width: 32, height: 48, speedFactor: 1.05, 
+                    colors: { primary: '#03214A', secondary: '#0032A0', accent: '#fff', tie: '#0032A0' } 
+                }, 
+                // Suit Obstacle 2: LSU (Purple Tie, using Gold accent)
+                { id: "obstacle_lsu", width: 32, height: 48, speedFactor: 1.1, 
+                    colors: { primary: '#461D7F', secondary: '#FDD017', accent: '#fff', tie: '#FDD017' } 
+                },    
+                // Suit Obstacle 3: Florida (Orange Tie)
+                { id: "obstacle_florida", width: 32, height: 48, speedFactor: 1.2, 
+                    colors: { primary: '#0021A5', secondary: '#FA4616', accent: '#fff', tie: '#FA4616' } 
+                }, 
+                // Suit Obstacle 4: Penn State (Dark Blue Suit, White Tie)
+                { id: "obstacle_pennstate", width: 32, height: 48, speedFactor: 1.0, 
+                    colors: { primary: '#102E50', secondary: '#FFFFFF', accent: '#fff', tie: '#FFFFFF' } 
+                }, 
+                // Suit Obstacle 5: UCLA (Dark Blue Suit, Gold Tie)
+                { id: "obstacle_ucla", width: 32, height: 48, speedFactor: 1.15, 
+                    colors: { primary: '#2D68C4', secondary: '#FFD100', accent: '#fff', tie: '#FFD100' } 
+                },    
             ],
             gameSettings: {
                 initialGameSpeed: 6,
@@ -109,13 +122,44 @@
         let nextObstacleFrame = 0;
         let speedBoostsApplied = 0; 
         let GROUND_Y = 0; 
-        let assetCache = {}; // Cache to store loaded Image objects
 
-
+        /** Utility function to draw pixel art based on a 2D array */
+        function drawPixelArt(x, y, spriteData, pixelScale, colorMap) {
+            
+            for (let row = 0; row < spriteData.length; row++) {
+                for (let col = 0; col < spriteData[row].length; col++) {
+                    const colorIndex = spriteData[row][col];
+                    
+                    if (colorIndex !== 0) { // 0 represents transparent/empty pixel
+                        let color;
+                        // Color mapping based on index:
+                        if (colorMap.type === 'player') {
+                            // Player Colors: 1=Skin/Hair/Pants, 2=Coat/Jacket
+                            color = colorIndex === 1 ? '#1f2937' : '#000000'; // Dark/Black for Rhule's look
+                        } else {
+                            // Obstacle Colors: 1=Suit (Primary), 2=Shirt (White), 3=Tie (Accent Color)
+                            color = colorIndex === 1 ? colorMap.primary : 
+                                    colorIndex === 2 ? colorMap.accent : 
+                                    colorMap.tie;
+                        }
+                        
+                        ctx.fillStyle = color;
+                        ctx.fillRect(
+                            x + col * pixelScale, 
+                            y + row * pixelScale, 
+                            pixelScale, 
+                            pixelScale
+                        );
+                    }
+                }
+            }
+        }
+        
         /** Handles canvas resizing to ensure responsiveness. */
         function handleResize() {
             const containerWidth = canvas.parentElement.clientWidth;
             canvas.width = containerWidth;
+            // Maintain a nice aspect ratio
             canvas.height = Math.min(containerWidth * (300 / 900), 400); 
 
             // Calculate the ground line based on the new canvas height
@@ -130,62 +174,25 @@
             }
         }
         
-        /** Promises to load a single image */
-        function loadImage(path) {
-            return new Promise((resolve, reject) => {
-                const img = new Image();
-                img.onload = () => resolve(img);
-                img.onerror = () => reject(new Error(`Failed to load image: ${path}`));
-                img.src = path;
-            });
-        }
-
-        /** Loads all game assets and populates the cache. */
-        async function loadAssets() {
-            const assetsToLoad = [];
-
-            // Player asset
-            assetsToLoad.push(loadImage(GAME_CONFIG.player.imagePath).then(img => {
-                assetCache[GAME_CONFIG.player.imagePath] = img;
-            }));
-
-            // Obstacle assets
-            GAME_CONFIG.obstacles.forEach(obstacle => {
-                assetsToLoad.push(loadImage(obstacle.imagePath).then(img => {
-                    assetCache[obstacle.imagePath] = img;
-                }));
-            });
-
-            try {
-                await Promise.all(assetsToLoad);
-                
-                // Once loaded, configure player and draw initial state
-                player = new Player(GAME_CONFIG.player);
-                player.draw();
-
-                // Update UI state
-                messageTitle.textContent = "WELCOME TO BUYOUT BASH";
-                messageBody.textContent = "Click START GAME or press Space/Tap to begin!";
-                restartButton.disabled = false;
-                
-            } catch (error) {
-                messageTitle.textContent = "ERROR LOADING ASSETS";
-                messageBody.textContent = "Could not load all game images. Check console for details.";
-                restartButton.disabled = true;
-                console.error("Asset loading error:", error);
-            }
-        }
-
         // Initial setup calls
         window.onload = () => {
             handleResize();
+            player = new Player(GAME_CONFIG.player);
+
+            // Initial UI Setup
+            messageTitle.textContent = "WELCOME TO BUYOUT BASH";
+            messageBody.textContent = "Click START GAME or press Space/Tap to begin!";
+            restartButton.textContent = "START GAME"; 
+
             window.addEventListener('resize', handleResize);
             document.addEventListener('keydown', handleKeyDown);
             document.addEventListener('touchstart', handleTouch);
             restartButton.addEventListener('click', startGame); 
             
-            // Start loading images immediately
-            loadAssets();
+            // Draw the player immediately so they are visible before the game starts
+            if (player) {
+                player.draw();
+            }
         };
 
 
@@ -202,20 +209,50 @@
                 this.isJumping = false;
                 this.jumpHeight = config.jumpHeight;
                 this.jumpSpeed = config.jumpSpeed;
-                this.image = assetCache[config.imagePath]; // Get image from cache
+
+                // 10x14 pixel sprite data for a coach character (Matt Rhule style)
+                this.spriteData = [
+                    [0,0,0,1,1,1,1,0,0,0], // Hair/Head
+                    [0,0,1,1,1,1,1,1,0,0], 
+                    [0,1,1,1,1,1,1,1,1,0],
+                    [0,1,2,2,2,2,2,2,1,0], // Coat Collar/Shoulders
+                    [0,1,2,2,2,2,2,2,1,0], // Coat
+                    [0,1,2,2,2,2,2,2,1,0],
+                    [0,1,2,2,2,2,2,2,1,0],
+                    [0,1,2,2,2,2,2,2,1,0],
+                    [0,0,1,1,1,1,1,1,0,0], // Pants (Dark)
+                    [0,0,1,1,1,1,1,1,0,0],
+                    [0,1,1,0,0,0,0,1,1,0], // Legs
+                    [1,1,0,0,0,0,0,0,1,1], // Animated Legs
+                    [1,0,0,0,0,0,0,0,0,1],
+                    [0,0,0,0,0,0,0,0,0,0]
+                ];
+                this.pixelWidth = 10 * PIXEL_SIZE;
+                this.pixelHeight = 14 * PIXEL_SIZE;
             }
 
             draw() {
-                if (this.image) {
-                    ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
-                }
+                const drawY = this.y;
+                let adjustedSpriteData = this.spriteData.slice(); 
+
+                // Running Animation (simple leg switch)
+                if (isGameRunning && !this.isJumping) {
+                    if (gameFrame % 10 < 5) {
+                         // Alternate leg position for a running look
+                        adjustedSpriteData[11] = [1,0,0,0,1,1,0,0,1,1]; 
+                    } else {
+                        // Default leg position
+                        adjustedSpriteData[11] = [1,1,0,0,1,1,0,0,0,1];
+                    }
+                } 
+
+                drawPixelArt(this.x, drawY, adjustedSpriteData, PIXEL_SIZE, { type: 'player' }); 
             }
 
             update() {
                 if (this.isJumping) {
                     this.y += this.jumpVelocity;
-                    // Gravity (brings runner down quickly)
-                    this.jumpVelocity += 1.0; 
+                    this.jumpVelocity += 1.0; // Gravity
 
                     if (this.y >= this.groundY) {
                         this.y = this.groundY;
@@ -228,7 +265,6 @@
             jump() {
                 if (!this.isJumping && isGameRunning) {
                     this.isJumping = true;
-                    // Calculate initial jump velocity based on desired height and gravity
                     this.jumpVelocity = -Math.sqrt(2 * 1.0 * this.jumpHeight);
                 }
             }
@@ -242,13 +278,27 @@
                 this.x = canvas.width; 
                 this.y = GROUND_Y - this.height;
                 this.speedFactor = config.speedFactor;
-                this.image = assetCache[config.imagePath]; // Get image from cache
+                this.colors = config.colors;
+
+                // Generic 8x12 pixel sprite data for a person in a suit (1=Suit, 2=Shirt, 3=Tie)
+                this.spriteData = [
+                    [0,0,1,1,1,1,0,0], 
+                    [0,1,2,2,2,2,1,0], 
+                    [1,2,3,3,3,3,2,1], // Tie Color
+                    [1,1,2,2,2,2,1,1],
+                    [1,1,1,1,1,1,1,1], 
+                    [1,1,1,1,1,1,1,1],
+                    [1,1,1,1,1,1,1,1],
+                    [1,1,1,1,1,1,1,1],
+                    [1,1,0,0,0,0,1,1],
+                    [1,1,0,0,0,0,1,1],
+                    [0,1,0,0,0,0,1,0],
+                    [0,1,0,0,0,0,1,0]  // Legs/Feet
+                ];
             }
 
             draw() {
-                if (this.image) {
-                    ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
-                }
+                drawPixelArt(this.x, this.y, this.spriteData, PIXEL_SIZE, this.colors);
             }
 
             update() {
@@ -406,6 +456,7 @@
     </script>
 </body>
 </html>
+
 
 
 
