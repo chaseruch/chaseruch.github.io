@@ -4,12 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Buyout Bash - Pixel Suitors</title>
+    <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Monospace:wght@400;700&display=swap');
         body {
             font-family: 'Inter', sans-serif;
-            /* Background: Black */
+            /* Page Background: Black */
             background-color: #000000; 
         }
         .score-font {
@@ -21,7 +22,7 @@
             margin-left: auto;
             margin-right: auto;
             overflow: hidden; 
-            /* Container background: White */
+            /* Container background: White for contrast */
             background-color: #ffffff; 
         }
         canvas {
@@ -42,10 +43,13 @@
         </div>
         
         <div class="relative">
+            <!-- Game Canvas -->
             <canvas id="gameCanvas" width="900" height="300" class="w-full"></canvas>
 
+            <!-- Score Display (Money) -->
             <div id="scoreDisplay" class="absolute top-2 right-4 text-2xl font-black score-font text-gray-700">$0</div>
             
+            <!-- Game Over / Start Message Box -->
             <div id="messageBox" class="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-70 transition-opacity duration-300">
                 <div class="bg-white p-8 rounded-lg shadow-2xl text-center">
                     <p class="text-4xl font-extrabold text-red-600 mb-4" id="messageTitle">PRESS START</p>
@@ -56,6 +60,7 @@
         </div>
     </div>
 
+    <!-- The main game script -->
     <script>
         // --- 1. GAME CONFIGURATION ---
         const PIXEL_SIZE = 4; // Base pixel size for the retro look
@@ -70,7 +75,7 @@
                 jumpSpeed: 10,
             },
             obstacles: [
-                // Obstacle 1: Auburn (Blue Tie)
+                // Obstacle 1: Auburn (Dark Blue Suit, Blue Tie)
                 { id: "obstacle_auburn", width: 32, height: 48, speedFactor: 1.05, 
                     colors: { primary: '#03214A', tie: '#0032A0', shirt: '#fff', skin: '#FDDCC0' } 
                 }, 
@@ -97,7 +102,7 @@
                 obstacleSpawnIntervalMin: 70, 
                 obstacleSpawnIntervalMax: 140, 
                 framesPerSecond: 60, 
-                speedBoostIntervalFrames: 600
+                speedBoostIntervalFrames: 600 // 10 seconds * 60 FPS
             }
         };
         
@@ -189,7 +194,7 @@
             restartButton.addEventListener('click', startGame); 
             
             if (player) {
-                player.draw();
+                player.draw(); // Draw the player before the game starts
             }
         };
 
@@ -246,7 +251,7 @@
             update() {
                 if (this.isJumping) {
                     this.y += this.jumpVelocity;
-                    this.jumpVelocity += 1.0; 
+                    this.jumpVelocity += 1.0; // Increased gravity
 
                     if (this.y >= this.groundY) {
                         this.y = this.groundY;
@@ -300,6 +305,7 @@
             }
 
             checkCollision(player) {
+                // Simple AABB collision detection
                 return (
                     this.x < player.x + player.width &&
                     this.x + this.width > player.x &&
@@ -335,14 +341,7 @@
                     gameSpeed * 2
                 );
                 speedBoostsApplied = requiredBoosts;
-                
-                messageTitle.textContent = `SPEED X${Math.pow(2, speedBoostsApplied)}!`;
-                messageBox.classList.remove('opacity-0', 'pointer-events-none');
-                setTimeout(() => {
-                    if (isGameRunning) {
-                        messageBox.classList.add('opacity-0', 'pointer-events-none');
-                    }
-                }, 1000); 
+                // No notification is shown here, per user request.
             }
 
 
