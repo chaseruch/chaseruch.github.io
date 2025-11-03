@@ -39,7 +39,7 @@
     <div id="app" class="game-container rounded-xl">
         <div class="p-4 bg-gray-900 text-white rounded-t-xl">
             <h1 class="text-3xl font-extrabold tracking-tight">💰 Buyout Bash: Pixel Suitors</h1>
-            <p class="text-sm opacity-75">Help Matt Rhule avoid a cheap buyout from the Power 4 competitors! Press **Space** or **Tap** to Jump.</p>
+            <p class="text-sm opacity-75">Help Matt Rhule avoid a cheap buyout from the Power 4 competitors! Press **Space** or **Tap** to Jump (Twice!).</p>
         </div>
         
         <div class="relative">
@@ -65,6 +65,7 @@
         // --- 1. GAME CONFIGURATION ---
         const PIXEL_SIZE = 4; // Base pixel size for the retro look
         const DOLLARS_PER_SECOND = 500000;
+        const MAX_JUMPS = 2; // Maximum jumps allowed
 
         const GAME_CONFIG = {
             player: {
@@ -102,8 +103,10 @@
                 obstacleSpawnIntervalMin: 35, 
                 obstacleSpawnIntervalMax: 70, 
                 framesPerSecond: 60, 
-                speedBoostIntervalFrames: 600, // 10 seconds * 60 FPS
-                speedIncreaseAmount: 3 // UPDATED: Increase speed by a fixed amount instead of doubling
+                // UPDATED: Speed increases every 5 seconds (300 frames)
+                speedBoostIntervalFrames: 300, 
+                // UPDATED: Speed increases by 50% (1.5x multiplier)
+                speedIncreaseAmount: 1.5 
             }
         };
         
@@ -237,6 +240,7 @@
                 this.isJumping = false;
                 this.jumpHeight = config.jumpHeight;
                 this.jumpSpeed = config.jumpSpeed;
+                this.jumpsUsed = 0; // New: Tracks number of jumps used
 
                 // 10x14 pixel sprite data for a coach character (1=Dark, 2=Red Coat, 4=Skin)
                 this.spriteData = [
@@ -282,14 +286,18 @@
                         this.y = this.groundY;
                         this.isJumping = false;
                         this.jumpVelocity = 0;
+                        this.jumpsUsed = 0; // Reset jumps when touching ground
                     }
                 }
             }
 
             jump() {
-                if (!this.isJumping && isGameRunning) {
+                // Allow jump if on ground (jumpsUsed < 1) OR if using the second jump (jumpsUsed == 1)
+                if (isGameRunning && this.jumpsUsed < MAX_JUMPS) {
+                    // Reset jump velocity for consistent jump height, even for double jump
                     this.isJumping = true;
                     this.jumpVelocity = -Math.sqrt(2 * 1.0 * this.jumpHeight);
+                    this.jumpsUsed++;
                 }
             }
         }
@@ -360,13 +368,13 @@
             scoreDisplay.textContent = `$${Math.floor(score).toLocaleString()}`;
 
 
-            // Speed Boost Logic (Smoother increase)
+            // Speed Boost Logic (50% increase every 5 seconds)
             const requiredBoosts = Math.floor(gameFrame / GAME_CONFIG.gameSettings.speedBoostIntervalFrames);
             if (requiredBoosts > speedBoostsApplied) {
-                // Increase speed by a fixed amount of 3, not doubling
+                // Increase speed by 50% (1.5x multiplier)
                 gameSpeed = Math.min(
                     GAME_CONFIG.gameSettings.maxGameSpeed, 
-                    gameSpeed + GAME_CONFIG.gameSettings.speedIncreaseAmount
+                    gameSpeed * GAME_CONFIG.gameSettings.speedIncreaseAmount
                 );
                 speedBoostsApplied = requiredBoosts;
                 // No notification is shown, per user request.
@@ -436,6 +444,7 @@
             player.y = player.groundY; 
             player.isJumping = false;
             player.jumpVelocity = 0;
+            player.jumpsUsed = 0; // Reset jumps for new game
 
             scoreDisplay.textContent = '$0'; 
 
