@@ -35,16 +35,16 @@
 
     <div id="app" class="game-container rounded-xl">
         <div class="p-4 bg-gray-900 text-white rounded-t-xl">
-            <h1 class="text-3xl font-extrabold tracking-tight">🏈 Buyout Bash: Pixel Suitors</h1>
-            <p class="text-sm opacity-75">Dodge the agents! Press **Space** or **Tap** to Jump.</p>
+            <h1 class="text-3xl font-extrabold tracking-tight">💰 Buyout Bash: Pixel Suitors</h1>
+            <p class="text-sm opacity-75">Dodge the $10,000/sec agents! Press **Space** or **Tap** to Jump.</p>
         </div>
         
         <div class="relative">
             <!-- Game Canvas -->
             <canvas id="gameCanvas" width="900" height="300" class="w-full"></canvas>
 
-            <!-- Score Display (Timer) - Using font-mono for retro look -->
-            <div id="scoreDisplay" class="absolute top-2 right-4 text-2xl font-black score-font text-gray-700">TIME: 0.00s</div>
+            <!-- Score Display (Money) - Using font-mono for retro look -->
+            <div id="scoreDisplay" class="absolute top-2 right-4 text-2xl font-black score-font text-gray-700">$0</div>
             
             <!-- Game Over / Start Message Box -->
             <div id="messageBox" class="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-70 transition-opacity duration-300">
@@ -61,6 +61,7 @@
     <script>
         // --- 1. GAME CONFIGURATION ---
         const PIXEL_SIZE = 4; // Base pixel size for the retro look
+        const DOLLARS_PER_SECOND = 10000;
 
         const GAME_CONFIG = {
             gameTitle: "Buyout Bash",
@@ -74,23 +75,23 @@
             obstacles: [
                 // Suit Obstacle 1: Auburn (Blue Tie)
                 { id: "obstacle_auburn", width: 32, height: 48, speedFactor: 1.05, 
-                    colors: { primary: '#03214A', secondary: '#0032A0', accent: '#fff', tie: '#0032A0' } 
+                    colors: { primary: '#03214A', tie: '#0032A0', shirt: '#fff', skin: '#FDDCC0' } 
                 }, 
                 // Suit Obstacle 2: LSU (Purple Tie, using Gold accent)
                 { id: "obstacle_lsu", width: 32, height: 48, speedFactor: 1.1, 
-                    colors: { primary: '#461D7F', secondary: '#FDD017', accent: '#fff', tie: '#FDD017' } 
+                    colors: { primary: '#461D7F', tie: '#FDD017', shirt: '#fff', skin: '#FDDCC0' } 
                 },    
                 // Suit Obstacle 3: Florida (Orange Tie)
                 { id: "obstacle_florida", width: 32, height: 48, speedFactor: 1.2, 
-                    colors: { primary: '#0021A5', secondary: '#FA4616', accent: '#fff', tie: '#FA4616' } 
+                    colors: { primary: '#0021A5', tie: '#FA4616', shirt: '#fff', skin: '#FDDCC0' } 
                 }, 
                 // Suit Obstacle 4: Penn State (Dark Blue Suit, White Tie)
                 { id: "obstacle_pennstate", width: 32, height: 48, speedFactor: 1.0, 
-                    colors: { primary: '#102E50', secondary: '#FFFFFF', accent: '#fff', tie: '#FFFFFF' } 
+                    colors: { primary: '#102E50', tie: '#FFFFFF', shirt: '#fff', skin: '#FDDCC0' } 
                 }, 
                 // Suit Obstacle 5: UCLA (Dark Blue Suit, Gold Tie)
                 { id: "obstacle_ucla", width: 32, height: 48, speedFactor: 1.15, 
-                    colors: { primary: '#2D68C4', secondary: '#FFD100', accent: '#fff', tie: '#FFD100' } 
+                    colors: { primary: '#2D68C4', tie: '#FFD100', shirt: '#fff', skin: '#FDDCC0' } 
                 },    
             ],
             gameSettings: {
@@ -102,6 +103,9 @@
                 speedBoostIntervalFrames: 600
             }
         };
+        
+        // Calculated value for score accumulation
+        const DOLLARS_PER_FRAME = DOLLARS_PER_SECOND / GAME_CONFIG.gameSettings.framesPerSecond;
 
         // --- 2. SETUP & INITIALIZATION ---
         const canvas = document.getElementById('gameCanvas');
@@ -134,13 +138,16 @@
                         let color;
                         // Color mapping based on index:
                         if (colorMap.type === 'player') {
-                            // Player Colors: 1=Skin/Hair/Pants, 2=Coat/Jacket
-                            color = colorIndex === 1 ? '#1f2937' : '#000000'; // Dark/Black for Rhule's look
+                            // Player Colors: 1=Hair/Pants/Dark, 2=Coat (Red), 4=Skin
+                            color = colorIndex === 1 ? '#1f2937' : 
+                                    colorIndex === 2 ? '#DC2626' : 
+                                    '#FDDCC0'; // Skin Tone for index 4
                         } else {
-                            // Obstacle Colors: 1=Suit (Primary), 2=Shirt (White), 3=Tie (Accent Color)
+                            // Obstacle Colors: 1=Suit (Primary), 2=Shirt (White), 3=Tie (Tie Color), 4=Skin
                             color = colorIndex === 1 ? colorMap.primary : 
-                                    colorIndex === 2 ? colorMap.accent : 
-                                    colorMap.tie;
+                                    colorIndex === 2 ? colorMap.shirt : 
+                                    colorIndex === 3 ? colorMap.tie : 
+                                    colorMap.skin; 
                         }
                         
                         ctx.fillStyle = color;
@@ -210,20 +217,20 @@
                 this.jumpHeight = config.jumpHeight;
                 this.jumpSpeed = config.jumpSpeed;
 
-                // 10x14 pixel sprite data for a coach character (Matt Rhule style)
+                // 10x14 pixel sprite data for a coach character (1=Pants/Hair, 2=Coat (Red), 4=Skin)
                 this.spriteData = [
-                    [0,0,0,1,1,1,1,0,0,0], // Hair/Head
-                    [0,0,1,1,1,1,1,1,0,0], 
-                    [0,1,1,1,1,1,1,1,1,0],
-                    [0,1,2,2,2,2,2,2,1,0], // Coat Collar/Shoulders
-                    [0,1,2,2,2,2,2,2,1,0], // Coat
+                    [0,0,0,1,1,1,1,0,0,0], // Hair/Head (Index 1)
+                    [0,0,1,4,4,4,4,1,0,0], // Head/Face (Index 4 - Skin)
+                    [0,1,4,4,4,4,4,4,1,0],
+                    [0,1,2,2,2,2,2,2,1,0], // Coat (Index 2 - Red)
                     [0,1,2,2,2,2,2,2,1,0],
                     [0,1,2,2,2,2,2,2,1,0],
                     [0,1,2,2,2,2,2,2,1,0],
-                    [0,0,1,1,1,1,1,1,0,0], // Pants (Dark)
+                    [0,1,2,2,2,2,2,2,1,0],
+                    [0,0,1,1,1,1,1,1,0,0], // Pants (Index 1)
                     [0,0,1,1,1,1,1,1,0,0],
-                    [0,1,1,0,0,0,0,1,1,0], // Legs
-                    [1,1,0,0,0,0,0,0,1,1], // Animated Legs
+                    [0,1,1,0,0,0,0,1,1,0], // Legs (Index 1)
+                    [1,1,0,0,0,0,0,0,1,1], // Animated Legs (Index 1)
                     [1,0,0,0,0,0,0,0,0,1],
                     [0,0,0,0,0,0,0,0,0,0]
                 ];
@@ -280,12 +287,12 @@
                 this.speedFactor = config.speedFactor;
                 this.colors = config.colors;
 
-                // Generic 8x12 pixel sprite data for a person in a suit (1=Suit, 2=Shirt, 3=Tie)
+                // Generic 8x12 pixel sprite data for a person in a suit (1=Suit, 2=Shirt, 3=Tie, 4=Skin)
                 this.spriteData = [
-                    [0,0,1,1,1,1,0,0], 
-                    [0,1,2,2,2,2,1,0], 
-                    [1,2,3,3,3,3,2,1], // Tie Color
-                    [1,1,2,2,2,2,1,1],
+                    [0,0,1,1,1,1,0,0], // Hair/Hat (Index 1)
+                    [0,1,4,4,4,4,1,0], // Skin (Index 4)
+                    [1,2,3,3,3,3,2,1], // Tie (Index 3), Shirt (Index 2)
+                    [1,1,2,2,2,2,1,1], // Suit (Index 1)
                     [1,1,1,1,1,1,1,1], 
                     [1,1,1,1,1,1,1,1],
                     [1,1,1,1,1,1,1,1],
@@ -329,9 +336,10 @@
             // 2. Update Game State
             gameFrame++;
             
-            // Score as Timer in seconds
-            score = (gameFrame / GAME_CONFIG.gameSettings.framesPerSecond).toFixed(2);
-            scoreDisplay.textContent = `TIME: ${score}s`;
+            // Score as Money (accumulates $10,000 per second)
+            score += DOLLARS_PER_FRAME;
+            scoreDisplay.textContent = `$${Math.floor(score).toLocaleString()}`;
+
 
             // Speed Doubling Logic (Every 10 seconds / 600 frames)
             const requiredBoosts = Math.floor(gameFrame / GAME_CONFIG.gameSettings.speedBoostIntervalFrames);
@@ -393,7 +401,7 @@
             isGameRunning = true;
             isGameOver = false;
             gameFrame = 0;
-            score = 0;
+            score = 0; // Reset score to 0
             gameSpeed = GAME_CONFIG.gameSettings.initialGameSpeed;
             obstacles = [];
             speedBoostsApplied = 0; 
@@ -406,7 +414,7 @@
             player.jumpVelocity = 0;
 
             // Ensure score display resets immediately
-            scoreDisplay.textContent = 'TIME: 0.00s'; 
+            scoreDisplay.textContent = '$0'; 
 
             messageBox.classList.add('opacity-0', 'pointer-events-none');
             restartButton.textContent = "RESTART";
@@ -419,8 +427,8 @@
             isGameRunning = false;
             isGameOver = true;
 
-            messageTitle.textContent = "GAME OVER!";
-            messageBody.textContent = `Final Buyout Time: ${score}s!`;
+            messageTitle.textContent = "DEAL IS DONE!";
+            messageBody.textContent = `Final Buyout Value: $${Math.floor(score).toLocaleString()}!`;
             
             restartButton.textContent = "RESTART";
             messageBox.classList.remove('opacity-0', 'pointer-events-none');
@@ -456,8 +464,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
