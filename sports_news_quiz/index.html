@@ -42,8 +42,8 @@
             <!-- Game Canvas -->
             <canvas id="gameCanvas" width="900" height="300" class="w-full"></canvas>
 
-            <!-- Score Display (Timer) -->
-            <div id="scoreDisplay" class="absolute top-2 right-4 text-2xl font-black text-gray-700">TIME: 0.00s</div>
+            <!-- Score Display (Timer) - Using font-mono for retro look -->
+            <div id="scoreDisplay" class="absolute top-2 right-4 text-2xl font-black font-mono text-gray-700">TIME: 0.00s</div>
             
             <!-- Game Over / Start Message Box -->
             <div id="messageBox" class="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-70 transition-opacity duration-300">
@@ -63,7 +63,7 @@
             gameTitle: "Buyout Bash",
             player: {
                 width: 30,
-                height: 50,
+                height: 60, // Adjusted height to encompass the full drawn character
                 x: 100, 
                 jumpHeight: 180,
                 jumpSpeed: 10,
@@ -140,6 +140,11 @@
             document.addEventListener('keydown', handleKeyDown);
             document.addEventListener('touchstart', handleTouch);
             restartButton.addEventListener('click', startGame); 
+            
+            // FIX: Draw the player immediately so they are visible before the game starts
+            if (player) {
+                player.draw();
+            }
         };
 
 
@@ -160,22 +165,28 @@
             }
 
             draw() {
-                // The running effect (flickering for retro feel)
-                const runOffset = gameFrame % 10 < 5 ? 0 : 2; 
+                // The running effect (simple leg flicker for retro feel)
+                const legFlicker = gameFrame % 10 < 5 ? 0 : 2; 
+                const drawY = this.y + legFlicker;
 
-                // Draw Body (lower block)
+                // --- 1. Draw Player Head (top 10px) ---
+                ctx.fillStyle = '#1f2937'; // Dark color for contrast
+                ctx.fillRect(this.x + 5, drawY, this.width - 10, 10);
+
+                // --- 2. Draw Player Body (middle 40px) ---
                 ctx.fillStyle = this.color;
-                ctx.fillRect(this.x, this.y + runOffset, this.width, this.height);
+                ctx.fillRect(this.x, drawY + 10, this.width, 40); 
 
-                // Draw Head (upper small block) for definition
-                ctx.fillStyle = '#10b981'; // Same color, just a smaller top piece
-                ctx.fillRect(this.x + this.width / 4, this.y - 10 + runOffset, this.width / 2, 10);
+                // --- 3. Draw Player Legs (bottom 10px, flickering) ---
+                ctx.fillStyle = '#1f2937'; // Dark color
+                ctx.fillRect(this.x + 2, drawY + 50, this.width - 4, 10);
 
-                // Add a black border for that pixel/retro look
+                // --- 4. Draw Black Borders (Retro Look) ---
                 ctx.strokeStyle = '#000';
                 ctx.lineWidth = 2;
-                ctx.strokeRect(this.x, this.y + runOffset, this.width, this.height);
-                ctx.strokeRect(this.x + this.width / 4, this.y - 10 + runOffset, this.width / 2, 10);
+                ctx.strokeRect(this.x + 5, drawY, this.width - 10, 10); // Head
+                ctx.strokeRect(this.x, drawY + 10, this.width, 40);      // Body
+                ctx.strokeRect(this.x + 2, drawY + 50, this.width - 4, 10); // Legs
             }
 
             update() {
@@ -232,8 +243,8 @@
                 return (
                     this.x < player.x + player.width &&
                     this.x + this.width > player.x &&
-                    this.y < player.y + player.height &&
-                    this.y + this.height > player.y
+                    player.y + player.height > this.y && // Check if player's bottom is below obstacle's top
+                    player.y < this.y + this.height     // Check if player's top is above obstacle's bottom
                 );
             }
         }
@@ -378,5 +389,6 @@
     </script>
 </body>
 </html>
+
 
 
