@@ -76,25 +76,25 @@
             },
             obstacles: [
                 // Obstacle 1: Auburn (Dark Blue Suit, Blue Tie)
-                { id: "obstacle_auburn", width: 32, height: 48, speedFactor: 1.05, 
+                { id: "obstacle_auburn", name: "Auburn", width: 32, height: 48, speedFactor: 1.05, 
                     colors: { primary: '#03214A', tie: '#0032A0', shirt: '#fff', skin: '#FDDCC0' } 
                 }, 
                 // Obstacle 2: LSU (Purple Suit, Gold Tie)
-                { id: "obstacle_lsu", width: 32, height: 48, speedFactor: 1.1, 
+                { id: "obstacle_lsu", name: "LSU", width: 32, height: 48, speedFactor: 1.1, 
                     colors: { primary: '#461D7F', tie: '#FDD017', shirt: '#fff', skin: '#FDDCC0' } 
                 },    
                 // Obstacle 3: Florida (Blue Suit, Orange Tie)
-                { id: "obstacle_florida", width: 32, height: 48, speedFactor: 1.2, 
+                { id: "obstacle_florida", name: "Florida", width: 32, height: 48, speedFactor: 1.2, 
                     colors: { primary: '#0021A5', tie: '#FA4616', shirt: '#fff', skin: '#FDDCC0' } 
                 }, 
                 // Obstacle 4: Penn State (Dark Blue Suit, White Tie)
-                { id: "obstacle_pennstate", width: 32, height: 48, speedFactor: 1.0, 
+                { id: "obstacle_pennstate", name: "Penn State", width: 32, height: 48, speedFactor: 1.0, 
                     colors: { primary: '#102E50', tie: '#FFFFFF', shirt: '#fff', skin: '#FDDCC0' } 
                 }, 
                 // Obstacle 5: UCLA (Dark Blue Suit, Gold Tie)
-                { id: "obstacle_ucla", width: 32, height: 48, speedFactor: 1.15, 
+                { id: "obstacle_ucla", name: "UCLA", width: 32, height: 48, speedFactor: 1.15, 
                     colors: { primary: '#2D68C4', tie: '#FFD100', shirt: '#fff', skin: '#FDDCC0' } 
-                },    
+                }
             ],
             gameSettings: {
                 initialGameSpeed: 6,
@@ -107,6 +107,30 @@
         };
         
         const DOLLARS_PER_FRAME = DOLLARS_PER_SECOND / GAME_CONFIG.gameSettings.framesPerSecond;
+
+        const GAME_OVER_MESSAGES = {
+            "obstacle_ucla": {
+                header: "UCLA",
+                subheader: "Get ready to be Lincoln Riley's little brother!"
+            },
+            "obstacle_auburn": {
+                header: "Auburn",
+                subheader: "You and Cam Newton now have comparable fall-offs."
+            },
+            "obstacle_florida": {
+                header: "Florida",
+                subheader: "Second to Satan in the eyes of Tommie Frazier."
+            },
+            "obstacle_pennstate": {
+                header: "Penn State",
+                subheader: "Welcome back, James Franklin!"
+            },
+            "obstacle_lsu": {
+                header: "LSU",
+                subheader: "Please do not use the lifts."
+            }
+        };
+
 
         // --- 2. SETUP & INITIALIZATION ---
         const canvas = document.getElementById('gameCanvas');
@@ -251,7 +275,7 @@
             update() {
                 if (this.isJumping) {
                     this.y += this.jumpVelocity;
-                    this.jumpVelocity += 1.0; // Increased gravity
+                    this.jumpVelocity += 1.0; // Gravity setting
 
                     if (this.y >= this.groundY) {
                         this.y = this.groundY;
@@ -278,6 +302,8 @@
                 this.y = GROUND_Y - this.height;
                 this.speedFactor = config.speedFactor;
                 this.colors = config.colors;
+                this.id = config.id;
+                this.name = config.name;
 
                 // Generic 8x12 pixel sprite data for a person in a suit (1=Suit, 2=Shirt, 3=Tie, 4=Skin)
                 this.spriteData = [
@@ -341,7 +367,7 @@
                     gameSpeed * 2
                 );
                 speedBoostsApplied = requiredBoosts;
-                // No notification is shown here, per user request.
+                // No notification is shown, per user request.
             }
 
 
@@ -366,7 +392,7 @@
 
                 // Check Collision
                 if (obstacle.checkCollision(player)) {
-                    endGame();
+                    endGame(obstacle.id);
                 }
 
                 // Remove obstacles that move off-screen
@@ -377,6 +403,20 @@
             
             // 6. Request Next Frame
             requestAnimationFrame(gameLoop);
+        }
+
+        /** Stops the game and displays game over message. */
+        function endGame(obstacleId) {
+            isGameRunning = false;
+            isGameOver = true;
+
+            const messageData = GAME_OVER_MESSAGES[obstacleId];
+
+            messageTitle.textContent = messageData.header.toUpperCase();
+            messageBody.innerHTML = `${messageData.subheader}<br><span class="text-xl font-bold mt-2 block text-gray-900">Final Buyout Value: $${Math.floor(score).toLocaleString()}!</span>`;
+            
+            restartButton.textContent = "RESTART";
+            messageBox.classList.remove('opacity-0', 'pointer-events-none');
         }
 
         /** Resets and starts the game. */
@@ -401,18 +441,6 @@
             restartButton.textContent = "RESTART";
             
             gameLoop();
-        }
-
-        /** Stops the game and displays game over message. */
-        function endGame() {
-            isGameRunning = false;
-            isGameOver = true;
-
-            messageTitle.textContent = "DEAL IS DONE!";
-            messageBody.textContent = `Final Buyout Value: $${Math.floor(score).toLocaleString()}!`;
-            
-            restartButton.textContent = "RESTART";
-            messageBox.classList.remove('opacity-0', 'pointer-events-none');
         }
 
         // --- 5. INPUT HANDLERS ---
