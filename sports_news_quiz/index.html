@@ -6,14 +6,16 @@
     <title>Buyout Bash - Retro Edition</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Use Inter font -->
+    <!-- Use Inter font, but Monospace for score -->
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Monospace:wght@400;700&display=swap');
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f3f4f6;
         }
-        /* Custom styles for the game container and canvas */
+        .score-font {
+            font-family: 'Monospace', monospace; /* Classic retro score look */
+        }
         .game-container {
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
             max-width: 1024px;
@@ -43,7 +45,7 @@
             <canvas id="gameCanvas" width="900" height="300" class="w-full"></canvas>
 
             <!-- Score Display (Timer) - Using font-mono for retro look -->
-            <div id="scoreDisplay" class="absolute top-2 right-4 text-2xl font-black font-mono text-gray-700">TIME: 0.00s</div>
+            <div id="scoreDisplay" class="absolute top-2 right-4 text-2xl font-black score-font text-gray-700">TIME: 0.00s</div>
             
             <!-- Game Over / Start Message Box -->
             <div id="messageBox" class="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-70 transition-opacity duration-300">
@@ -59,23 +61,81 @@
     <!-- The main game script -->
     <script>
         // --- 1. GAME CONFIGURATION ---
+        const PIXEL_SIZE = 4; // Base pixel size for the retro look
+
         const GAME_CONFIG = {
             gameTitle: "Buyout Bash",
             player: {
                 width: 30,
-                height: 60, // Adjusted height to encompass the full drawn character
+                height: 60, 
                 x: 100, 
                 jumpHeight: 180,
                 jumpSpeed: 10,
-                color: '#10b981' // Green
+                color: '#10b981'
             },
             obstacles: [
-                // Obstacles drawn as simple colored rectangles with black borders
-                { id: "obstacle_pennstate", name: "PSU", width: 30, height: 60, speedFactor: 1.0, color: '#102E50' }, // Navy Blue
-                { id: "obstacle_lsu", name: "LSU", width: 45, height: 35, speedFactor: 1.1, color: '#461D7F' },    // Purple
-                { id: "obstacle_auburn", name: "Auburn", width: 35, height: 50, speedFactor: 1.05, color: '#03214A' }, // Auburn Blue
-                { id: "obstacle_ucla", name: "UCLA", width: 50, height: 40, speedFactor: 1.15, color: '#2D68C4' },    // UCLA Blue
-                { id: "obstacle_florida", name: "Florida", width: 40, height: 65, speedFactor: 1.2, color: '#0021A5' } // Royal Blue
+                // Obstacle 1: Penn State (Blue/White, small/tall block)
+                { id: "obstacle_pennstate", width: 8 * PIXEL_SIZE, height: 15 * PIXEL_SIZE, speedFactor: 1.0, color: '#102E50', 
+                    sprite: [
+                        [1,1,1,1,1,1,1,1],
+                        [1,0,0,0,0,0,0,1],
+                        [1,0,1,0,0,1,0,1],
+                        [1,0,1,0,0,1,0,1],
+                        [1,0,0,0,0,0,0,1],
+                        [1,0,1,1,1,1,0,1],
+                        [1,0,0,0,0,0,0,1],
+                        [1,1,1,1,1,1,1,1],
+                    ],
+                    scale: 8
+                }, 
+                // Obstacle 2: LSU (Purple/Gold, wider block)
+                { id: "obstacle_lsu", width: 12 * PIXEL_SIZE, height: 10 * PIXEL_SIZE, speedFactor: 1.1, color: '#461D7F', 
+                    sprite: [
+                        [2,2,2,2,2,2,2,2,2,2,2,2],
+                        [2,1,1,1,1,1,1,1,1,1,1,2],
+                        [2,1,2,1,2,1,2,1,2,1,1,2],
+                        [2,1,1,1,1,1,1,1,1,1,1,2],
+                        [2,1,2,1,2,1,2,1,2,1,1,2],
+                        [2,1,1,1,1,1,1,1,1,1,1,2],
+                        [2,2,2,2,2,2,2,2,2,2,2,2]
+                    ],
+                    scale: 6
+                },    
+                // Obstacle 3: Auburn (Blue/Orange, single block)
+                { id: "obstacle_auburn", width: 7 * PIXEL_SIZE, height: 13 * PIXEL_SIZE, speedFactor: 1.05, color: '#03214A', 
+                    sprite: [
+                        [1,1,1,1,1,1,1],
+                        [1,2,2,2,2,2,1],
+                        [1,2,1,2,1,2,1],
+                        [1,2,2,2,2,2,1],
+                        [1,2,1,2,1,2,1],
+                        [1,2,2,2,2,2,1],
+                        [1,1,1,1,1,1,1]
+                    ],
+                    scale: 7
+                }, 
+                // Obstacle 4: UCLA (Blue/Gold, low, wide block)
+                { id: "obstacle_ucla", width: 15 * PIXEL_SIZE, height: 7 * PIXEL_SIZE, speedFactor: 1.15, color: '#2D68C4', 
+                    sprite: [
+                        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+                        [1,2,1,2,1,2,1,2,1,2,1,2,1,2,1],
+                        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+                    ],
+                    scale: 5
+                },    
+                // Obstacle 5: Florida (Blue/Orange, thin/tall block)
+                { id: "obstacle_florida", width: 6 * PIXEL_SIZE, height: 16 * PIXEL_SIZE, speedFactor: 1.2, color: '#0021A5',
+                    sprite: [
+                        [1,1,1,1,1,1],
+                        [1,2,1,2,1,1],
+                        [1,1,1,1,1,1],
+                        [1,2,1,2,1,1],
+                        [1,1,1,1,1,1],
+                        [1,2,1,2,1,1],
+                        [1,1,1,1,1,1]
+                    ],
+                    scale: 8
+                } 
             ],
             gameSettings: {
                 initialGameSpeed: 6,
@@ -83,7 +143,7 @@
                 obstacleSpawnIntervalMin: 70, 
                 obstacleSpawnIntervalMax: 140, 
                 framesPerSecond: 60, 
-                speedBoostIntervalFrames: 600 // Doubles speed every 10 seconds (600 frames)
+                speedBoostIntervalFrames: 600
             }
         };
 
@@ -107,6 +167,37 @@
         let speedBoostsApplied = 0; 
         let GROUND_Y = 0; 
 
+        /** Utility function to draw pixel art based on a 2D array */
+        function drawPixelArt(x, y, spriteData, scale, colors) {
+            const pixelScale = PIXEL_SIZE; // Use the global pixel size
+
+            for (let row = 0; row < spriteData.length; row++) {
+                for (let col = 0; col < spriteData[row].length; col++) {
+                    const colorIndex = spriteData[row][col];
+                    
+                    if (colorIndex !== 0) { // 0 represents transparent/empty pixel
+                        let color;
+                        // Use a fixed color map based on index for variety
+                        if (colors === 'player') {
+                            // Player Colors: 1=Skin/Body, 2=Hair/Jacket
+                            color = colorIndex === 1 ? '#10b981' : '#1f2937'; 
+                        } else {
+                            // Obstacle Colors: 1=Primary, 2=Secondary/Accent
+                            color = colorIndex === 1 ? colors.primary : colors.secondary; 
+                        }
+                        
+                        ctx.fillStyle = color;
+                        ctx.fillRect(
+                            x + col * pixelScale, 
+                            y + row * pixelScale, 
+                            pixelScale, 
+                            pixelScale
+                        );
+                    }
+                }
+            }
+        }
+        
         /** Handles canvas resizing to ensure responsiveness. */
         function handleResize() {
             const containerWidth = canvas.parentElement.clientWidth;
@@ -141,7 +232,7 @@
             document.addEventListener('touchstart', handleTouch);
             restartButton.addEventListener('click', startGame); 
             
-            // FIX: Draw the player immediately so they are visible before the game starts
+            // Draw the player immediately so they are visible before the game starts
             if (player) {
                 player.draw();
             }
@@ -162,38 +253,59 @@
                 this.jumpHeight = config.jumpHeight;
                 this.jumpSpeed = config.jumpSpeed;
                 this.color = config.color;
+
+                // 10x15 pixel sprite data for a running character (Matt Rhule style)
+                this.spriteData = [
+                    [0,0,0,1,1,1,1,0,0,0], // Hair/Head
+                    [0,0,1,2,2,2,2,1,0,0], // Head/Face
+                    [0,1,2,2,2,2,2,2,1,0],
+                    [0,1,2,1,1,1,1,2,1,0], // Collar
+                    [0,1,1,1,1,1,1,1,1,0], // Shoulders/Body
+                    [0,1,2,2,2,2,2,2,1,0],
+                    [0,1,2,1,1,1,1,2,1,0],
+                    [0,1,1,1,1,1,1,1,1,0],
+                    [0,0,1,1,1,1,1,1,0,0],
+                    [0,0,1,0,1,1,0,1,0,0], // Split waist
+                    [0,1,1,0,1,1,0,1,1,0], // Hip/Upper Leg
+                    [1,1,0,0,1,1,0,0,1,1], // Lower Leg - Animated
+                    [1,0,0,0,1,1,0,0,0,1],
+                    [0,0,0,0,0,0,0,0,0,0]
+                ];
+                this.pixelWidth = 10 * PIXEL_SIZE; // Player is 10 pixels wide
+                this.pixelHeight = 14 * PIXEL_SIZE; // Player is 14 pixels tall
             }
 
             draw() {
-                // The running effect (simple leg flicker for retro feel)
-                const legFlicker = gameFrame % 10 < 5 ? 0 : 2; 
-                const drawY = this.y + legFlicker;
+                const drawY = this.y;
+                let adjustedSpriteData = this.spriteData.slice(); // Copy base sprite
 
-                // --- 1. Draw Player Head (top 10px) ---
-                ctx.fillStyle = '#1f2937'; // Dark color for contrast
-                ctx.fillRect(this.x + 5, drawY, this.width - 10, 10);
+                // Running Animation (simple leg switch)
+                if (isGameRunning && !this.isJumping) {
+                    if (gameFrame % 10 < 5) {
+                         // Alternate leg position for a running look
+                        adjustedSpriteData[12] = [1,0,0,0,1,1,0,0,1,1]; 
+                    } else {
+                        // Default leg position
+                        adjustedSpriteData[12] = [1,1,0,0,1,1,0,0,0,1];
+                    }
+                } else {
+                    // Static stance if not running
+                    adjustedSpriteData[12] = this.spriteData[12];
+                }
 
-                // --- 2. Draw Player Body (middle 40px) ---
-                ctx.fillStyle = this.color;
-                ctx.fillRect(this.x, drawY + 10, this.width, 40); 
+                // Draw the actual pixel sprite (colors defined in drawPixelArt)
+                drawPixelArt(this.x, drawY, adjustedSpriteData, PIXEL_SIZE, 'player'); 
 
-                // --- 3. Draw Player Legs (bottom 10px, flickering) ---
-                ctx.fillStyle = '#1f2937'; // Dark color
-                ctx.fillRect(this.x + 2, drawY + 50, this.width - 4, 10);
-
-                // --- 4. Draw Black Borders (Retro Look) ---
-                ctx.strokeStyle = '#000';
-                ctx.lineWidth = 2;
-                ctx.strokeRect(this.x + 5, drawY, this.width - 10, 10); // Head
-                ctx.strokeRect(this.x, drawY + 10, this.width, 40);      // Body
-                ctx.strokeRect(this.x + 2, drawY + 50, this.width - 4, 10); // Legs
+                // Draw the collision box outline (for debugging, set strokeStyle to a color)
+                // ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+                // ctx.strokeRect(this.x, this.y, this.width, this.height);
             }
 
             update() {
                 if (this.isJumping) {
                     this.y += this.jumpVelocity;
-                    // Gravity (brings runner down quickly)
-                    this.jumpVelocity += 0.8; 
+                    // Gravity (brings runner down quickly - increased from previous version)
+                    this.jumpVelocity += 1.0; 
 
                     if (this.y >= this.groundY) {
                         this.y = this.groundY;
@@ -207,7 +319,7 @@
                 if (!this.isJumping && isGameRunning) {
                     this.isJumping = true;
                     // Calculate initial jump velocity based on desired height and gravity
-                    this.jumpVelocity = -Math.sqrt(2 * 0.8 * this.jumpHeight);
+                    this.jumpVelocity = -Math.sqrt(2 * 1.0 * this.jumpHeight);
                 }
             }
         }
@@ -217,21 +329,26 @@
                 this.config = config;
                 this.width = config.width;
                 this.height = config.height;
-                this.color = config.color;
                 this.x = canvas.width; 
                 this.y = GROUND_Y - this.height;
                 this.speedFactor = config.speedFactor;
+                this.sprite = config.sprite;
+                this.primaryColor = config.color;
+                this.secondaryColor = (config.id === 'obstacle_auburn' || config.id === 'obstacle_florida') ? '#FF671E' : 
+                                      (config.id === 'obstacle_lsu') ? '#FDD017' : 
+                                      '#fff'; // Default secondary/accent color
             }
 
             draw() {
-                // Draw the obstacle rectangle
-                ctx.fillStyle = this.color;
-                ctx.fillRect(this.x, this.y, this.width, this.height);
+                // Draw the pixel art for the obstacle
+                drawPixelArt(this.x, this.y, this.sprite, PIXEL_SIZE, {
+                    primary: this.primaryColor,
+                    secondary: this.secondaryColor
+                });
 
-                // Add a black border for the retro look
-                ctx.strokeStyle = '#000';
-                ctx.lineWidth = 2;
-                ctx.strokeRect(this.x, this.y, this.width, this.height);
+                // Draw the collision box outline (for debugging, set strokeStyle to a color)
+                // ctx.strokeStyle = 'rgba(0, 0, 255, 0.5)';
+                // ctx.strokeRect(this.x, this.y, this.width, this.height);
             }
 
             update() {
@@ -243,8 +360,8 @@
                 return (
                     this.x < player.x + player.width &&
                     this.x + this.width > player.x &&
-                    player.y + player.height > this.y && // Check if player's bottom is below obstacle's top
-                    player.y < this.y + this.height     // Check if player's top is above obstacle's bottom
+                    player.y + player.height > this.y && 
+                    player.y < this.y + this.height     
                 );
             }
         }
