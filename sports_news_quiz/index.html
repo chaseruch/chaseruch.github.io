@@ -86,8 +86,10 @@
                 // Removed continuous speed increase
                 speedIncreaseRate: 0, 
                 maxGameSpeed: 30, // Increased max speed to allow for doubling
-                obstacleSpawnIntervalMin: 120, // Min frames between spawns
-                obstacleSpawnIntervalMax: 220, // Max frames between spawns
+                // --- UPDATED: Increased obstacle frequency ---
+                obstacleSpawnIntervalMin: 70, 
+                obstacleSpawnIntervalMax: 140, 
+                // ---------------------------------------------
                 framesPerSecond: 60, // Standard frame rate approximation
                 speedBoostIntervalFrames: 600 // 10 seconds * 60 FPS
             }
@@ -236,7 +238,9 @@
             update() {
                 if (this.isJumping) {
                     this.y += this.jumpVelocity;
-                    this.jumpVelocity += 0.5; // Gravity
+                    // --- UPDATED: Increased gravity for quicker descent ---
+                    this.jumpVelocity += 0.8; 
+                    // ---------------------------------------------------
 
                     if (this.y >= this.groundY) {
                         this.y = this.groundY;
@@ -249,7 +253,8 @@
             jump() {
                 if (!this.isJumping && isGameRunning) {
                     this.isJumping = true;
-                    this.jumpVelocity = -Math.sqrt(2 * 0.5 * this.jumpHeight);
+                    // Note: Initial jump velocity calculation needs to account for the new gravity value (0.8)
+                    this.jumpVelocity = -Math.sqrt(2 * 0.8 * this.jumpHeight);
                 }
             }
         }
@@ -378,6 +383,10 @@
             player.y = player.groundY; 
             player.isJumping = false;
             player.jumpVelocity = 0;
+
+            // --- FIX: Ensure score display resets immediately ---
+            scoreDisplay.textContent = 'TIME: 0.00s'; 
+            // ----------------------------------------------------
 
             messageBox.classList.add('opacity-0', 'pointer-events-none');
             restartButton.classList.add('hidden');
