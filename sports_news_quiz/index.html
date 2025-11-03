@@ -39,7 +39,6 @@
     <div id="app" class="game-container rounded-xl">
         <div class="p-4 bg-gray-900 text-white rounded-t-xl">
             <h1 class="text-3xl font-extrabold tracking-tight">💰 Buyout Bash: Pixel Suitors</h1>
-            <!-- UPDATED SUBHEADER -->
             <p class="text-sm opacity-75">Help Matt Rhule avoid a cheap buyout from the Power 4 competitors! Press **Space** or **Tap** to Jump.</p>
         </div>
         
@@ -65,7 +64,7 @@
     <script>
         // --- 1. GAME CONFIGURATION ---
         const PIXEL_SIZE = 4; // Base pixel size for the retro look
-        const DOLLARS_PER_SECOND = 500000; // UPDATED: $500,000 per second
+        const DOLLARS_PER_SECOND = 500000;
 
         const GAME_CONFIG = {
             player: {
@@ -100,14 +99,15 @@
             gameSettings: {
                 initialGameSpeed: 6,
                 maxGameSpeed: 30, 
-                obstacleSpawnIntervalMin: 70, 
-                obstacleSpawnIntervalMax: 140, 
+                // UPDATED: Significantly increased obstacle frequency
+                obstacleSpawnIntervalMin: 35, 
+                obstacleSpawnIntervalMax: 70, 
                 framesPerSecond: 60, 
                 speedBoostIntervalFrames: 600 // 10 seconds * 60 FPS
             }
         };
         
-        const DOLLARS_PER_FRAME = DOLLARS_PER_SECOND / GAME_CONFIG.gameSettings.framesPerSecond; // UPDATED calculation
+        const DOLLARS_PER_FRAME = DOLLARS_PER_SECOND / GAME_CONFIG.gameSettings.framesPerSecond;
 
         const GAME_OVER_MESSAGES = {
             "obstacle_ucla": {
