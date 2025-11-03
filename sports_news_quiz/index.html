@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Buyout Bash - Retro Edition</title>
+    <title>Buyout Bash - Image Edition</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Use Inter font, but Monospace for score -->
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Monospace:wght@400;700&display=swap');
         body {
@@ -36,7 +35,7 @@
 
     <div id="app" class="game-container rounded-xl">
         <div class="p-4 bg-gray-900 text-white rounded-t-xl">
-            <h1 class="text-3xl font-extrabold tracking-tight">🕹️ Buyout Bash: Retro Edition</h1>
+            <h1 class="text-3xl font-extrabold tracking-tight">🏈 Buyout Bash: Image Edition</h1>
             <p class="text-sm opacity-75">Dodge those buyouts! Press **Space** or **Tap** to Jump.</p>
         </div>
         
@@ -50,9 +49,9 @@
             <!-- Game Over / Start Message Box -->
             <div id="messageBox" class="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-70 transition-opacity duration-300">
                 <div class="bg-white p-8 rounded-lg shadow-2xl text-center">
-                    <p class="text-4xl font-extrabold text-red-600 mb-4" id="messageTitle">PRESS START</p>
-                    <p class="text-lg text-gray-700" id="messageBody">Click START GAME or press Space/Tap to begin!</p>
-                    <button id="restartButton" class="mt-4 px-6 py-3 bg-indigo-600 text-white font-bold rounded-lg shadow-lg hover:bg-indigo-700 transition transform hover:scale-105">START GAME</button>
+                    <p class="text-4xl font-extrabold text-red-600 mb-4" id="messageTitle">LOADING ASSETS...</p>
+                    <p class="text-lg text-gray-700" id="messageBody">Please wait for images to load...</p>
+                    <button id="restartButton" class="mt-4 px-6 py-3 bg-indigo-600 text-white font-bold rounded-lg shadow-lg hover:bg-indigo-700 transition transform hover:scale-105" disabled>START GAME</button>
                 </div>
             </div>
         </div>
@@ -61,81 +60,25 @@
     <!-- The main game script -->
     <script>
         // --- 1. GAME CONFIGURATION ---
-        const PIXEL_SIZE = 4; // Base pixel size for the retro look
-
+        // Using the Content Fetch IDs for reliable display within this environment
         const GAME_CONFIG = {
             gameTitle: "Buyout Bash",
             player: {
-                width: 30,
-                height: 60, 
-                x: 100, 
+                id: "player_character",
+                name: "Matt Rhule",
+                imagePath: "uploaded:rhule_headshot.jpg-e0f950d9-c647-4f81-a791-8b71e281075d",
+                width: 80, 
+                height: 120, 
+                x: 100,
                 jumpHeight: 180,
-                jumpSpeed: 10,
-                color: '#10b981'
+                jumpSpeed: 10
             },
             obstacles: [
-                // Obstacle 1: Penn State (Blue/White, small/tall block)
-                { id: "obstacle_pennstate", width: 8 * PIXEL_SIZE, height: 15 * PIXEL_SIZE, speedFactor: 1.0, color: '#102E50', 
-                    sprite: [
-                        [1,1,1,1,1,1,1,1],
-                        [1,0,0,0,0,0,0,1],
-                        [1,0,1,0,0,1,0,1],
-                        [1,0,1,0,0,1,0,1],
-                        [1,0,0,0,0,0,0,1],
-                        [1,0,1,1,1,1,0,1],
-                        [1,0,0,0,0,0,0,1],
-                        [1,1,1,1,1,1,1,1],
-                    ],
-                    scale: 8
-                }, 
-                // Obstacle 2: LSU (Purple/Gold, wider block)
-                { id: "obstacle_lsu", width: 12 * PIXEL_SIZE, height: 10 * PIXEL_SIZE, speedFactor: 1.1, color: '#461D7F', 
-                    sprite: [
-                        [2,2,2,2,2,2,2,2,2,2,2,2],
-                        [2,1,1,1,1,1,1,1,1,1,1,2],
-                        [2,1,2,1,2,1,2,1,2,1,1,2],
-                        [2,1,1,1,1,1,1,1,1,1,1,2],
-                        [2,1,2,1,2,1,2,1,2,1,1,2],
-                        [2,1,1,1,1,1,1,1,1,1,1,2],
-                        [2,2,2,2,2,2,2,2,2,2,2,2]
-                    ],
-                    scale: 6
-                },    
-                // Obstacle 3: Auburn (Blue/Orange, single block)
-                { id: "obstacle_auburn", width: 7 * PIXEL_SIZE, height: 13 * PIXEL_SIZE, speedFactor: 1.05, color: '#03214A', 
-                    sprite: [
-                        [1,1,1,1,1,1,1],
-                        [1,2,2,2,2,2,1],
-                        [1,2,1,2,1,2,1],
-                        [1,2,2,2,2,2,1],
-                        [1,2,1,2,1,2,1],
-                        [1,2,2,2,2,2,1],
-                        [1,1,1,1,1,1,1]
-                    ],
-                    scale: 7
-                }, 
-                // Obstacle 4: UCLA (Blue/Gold, low, wide block)
-                { id: "obstacle_ucla", width: 15 * PIXEL_SIZE, height: 7 * PIXEL_SIZE, speedFactor: 1.15, color: '#2D68C4', 
-                    sprite: [
-                        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-                        [1,2,1,2,1,2,1,2,1,2,1,2,1,2,1],
-                        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
-                    ],
-                    scale: 5
-                },    
-                // Obstacle 5: Florida (Blue/Orange, thin/tall block)
-                { id: "obstacle_florida", width: 6 * PIXEL_SIZE, height: 16 * PIXEL_SIZE, speedFactor: 1.2, color: '#0021A5',
-                    sprite: [
-                        [1,1,1,1,1,1],
-                        [1,2,1,2,1,1],
-                        [1,1,1,1,1,1],
-                        [1,2,1,2,1,1],
-                        [1,1,1,1,1,1],
-                        [1,2,1,2,1,1],
-                        [1,1,1,1,1,1]
-                    ],
-                    scale: 8
-                } 
+                { id: "obstacle_pennstate", name: "Penn State", imagePath: "uploaded:psu_logo.png-66bbe6ee-ad3b-4d79-9c7b-5ab7a788baed", width: 70, height: 70, speedFactor: 1.0 },
+                { id: "obstacle_lsu", name: "LSU", imagePath: "uploaded:lsu_tiger.png-c04118d0-5d0f-4bdf-a6d4-8aece67c49d2", width: 90, height: 90, speedFactor: 1.1 },
+                { id: "obstacle_auburn", name: "Auburn", imagePath: "uploaded:auburn_logo.png-c6101724-ed52-4002-8f1b-3c024f746b18", width: 60, height: 60, speedFactor: 1.05 },
+                { id: "obstacle_ucla", name: "UCLA", imagePath: "uploaded:ucla_bear.jpg-c4ea4cae-423f-4dae-b8e0-6bf1fc50d636", width: 100, height: 100, speedFactor: 1.15 },
+                { id: "obstacle_florida", name: "Florida", imagePath: "uploaded:florida_logo.jpg-777b0f5b-340b-4a11-984b-5156f7bc0a81", width: 80, height: 80, speedFactor: 1.2 }
             ],
             gameSettings: {
                 initialGameSpeed: 6,
@@ -166,43 +109,13 @@
         let nextObstacleFrame = 0;
         let speedBoostsApplied = 0; 
         let GROUND_Y = 0; 
+        let assetCache = {}; // Cache to store loaded Image objects
 
-        /** Utility function to draw pixel art based on a 2D array */
-        function drawPixelArt(x, y, spriteData, scale, colors) {
-            const pixelScale = PIXEL_SIZE; // Use the global pixel size
 
-            for (let row = 0; row < spriteData.length; row++) {
-                for (let col = 0; col < spriteData[row].length; col++) {
-                    const colorIndex = spriteData[row][col];
-                    
-                    if (colorIndex !== 0) { // 0 represents transparent/empty pixel
-                        let color;
-                        // Use a fixed color map based on index for variety
-                        if (colors === 'player') {
-                            // Player Colors: 1=Skin/Body, 2=Hair/Jacket
-                            color = colorIndex === 1 ? '#10b981' : '#1f2937'; 
-                        } else {
-                            // Obstacle Colors: 1=Primary, 2=Secondary/Accent
-                            color = colorIndex === 1 ? colors.primary : colors.secondary; 
-                        }
-                        
-                        ctx.fillStyle = color;
-                        ctx.fillRect(
-                            x + col * pixelScale, 
-                            y + row * pixelScale, 
-                            pixelScale, 
-                            pixelScale
-                        );
-                    }
-                }
-            }
-        }
-        
         /** Handles canvas resizing to ensure responsiveness. */
         function handleResize() {
             const containerWidth = canvas.parentElement.clientWidth;
             canvas.width = containerWidth;
-            // Maintain a nice aspect ratio
             canvas.height = Math.min(containerWidth * (300 / 900), 400); 
 
             // Calculate the ground line based on the new canvas height
@@ -217,25 +130,62 @@
             }
         }
         
+        /** Promises to load a single image */
+        function loadImage(path) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = () => reject(new Error(`Failed to load image: ${path}`));
+                img.src = path;
+            });
+        }
+
+        /** Loads all game assets and populates the cache. */
+        async function loadAssets() {
+            const assetsToLoad = [];
+
+            // Player asset
+            assetsToLoad.push(loadImage(GAME_CONFIG.player.imagePath).then(img => {
+                assetCache[GAME_CONFIG.player.imagePath] = img;
+            }));
+
+            // Obstacle assets
+            GAME_CONFIG.obstacles.forEach(obstacle => {
+                assetsToLoad.push(loadImage(obstacle.imagePath).then(img => {
+                    assetCache[obstacle.imagePath] = img;
+                }));
+            });
+
+            try {
+                await Promise.all(assetsToLoad);
+                
+                // Once loaded, configure player and draw initial state
+                player = new Player(GAME_CONFIG.player);
+                player.draw();
+
+                // Update UI state
+                messageTitle.textContent = "WELCOME TO BUYOUT BASH";
+                messageBody.textContent = "Click START GAME or press Space/Tap to begin!";
+                restartButton.disabled = false;
+                
+            } catch (error) {
+                messageTitle.textContent = "ERROR LOADING ASSETS";
+                messageBody.textContent = "Could not load all game images. Check console for details.";
+                restartButton.disabled = true;
+                console.error("Asset loading error:", error);
+            }
+        }
+
         // Initial setup calls
         window.onload = () => {
             handleResize();
-            player = new Player(GAME_CONFIG.player);
-
-            // Initial UI Setup
-            messageTitle.textContent = "WELCOME TO BUYOUT BASH";
-            messageBody.textContent = "Click START GAME or press Space/Tap to begin!";
-            restartButton.textContent = "START GAME"; 
-
             window.addEventListener('resize', handleResize);
             document.addEventListener('keydown', handleKeyDown);
             document.addEventListener('touchstart', handleTouch);
             restartButton.addEventListener('click', startGame); 
             
-            // Draw the player immediately so they are visible before the game starts
-            if (player) {
-                player.draw();
-            }
+            // Start loading images immediately
+            loadAssets();
         };
 
 
@@ -252,59 +202,19 @@
                 this.isJumping = false;
                 this.jumpHeight = config.jumpHeight;
                 this.jumpSpeed = config.jumpSpeed;
-                this.color = config.color;
-
-                // 10x15 pixel sprite data for a running character (Matt Rhule style)
-                this.spriteData = [
-                    [0,0,0,1,1,1,1,0,0,0], // Hair/Head
-                    [0,0,1,2,2,2,2,1,0,0], // Head/Face
-                    [0,1,2,2,2,2,2,2,1,0],
-                    [0,1,2,1,1,1,1,2,1,0], // Collar
-                    [0,1,1,1,1,1,1,1,1,0], // Shoulders/Body
-                    [0,1,2,2,2,2,2,2,1,0],
-                    [0,1,2,1,1,1,1,2,1,0],
-                    [0,1,1,1,1,1,1,1,1,0],
-                    [0,0,1,1,1,1,1,1,0,0],
-                    [0,0,1,0,1,1,0,1,0,0], // Split waist
-                    [0,1,1,0,1,1,0,1,1,0], // Hip/Upper Leg
-                    [1,1,0,0,1,1,0,0,1,1], // Lower Leg - Animated
-                    [1,0,0,0,1,1,0,0,0,1],
-                    [0,0,0,0,0,0,0,0,0,0]
-                ];
-                this.pixelWidth = 10 * PIXEL_SIZE; // Player is 10 pixels wide
-                this.pixelHeight = 14 * PIXEL_SIZE; // Player is 14 pixels tall
+                this.image = assetCache[config.imagePath]; // Get image from cache
             }
 
             draw() {
-                const drawY = this.y;
-                let adjustedSpriteData = this.spriteData.slice(); // Copy base sprite
-
-                // Running Animation (simple leg switch)
-                if (isGameRunning && !this.isJumping) {
-                    if (gameFrame % 10 < 5) {
-                         // Alternate leg position for a running look
-                        adjustedSpriteData[12] = [1,0,0,0,1,1,0,0,1,1]; 
-                    } else {
-                        // Default leg position
-                        adjustedSpriteData[12] = [1,1,0,0,1,1,0,0,0,1];
-                    }
-                } else {
-                    // Static stance if not running
-                    adjustedSpriteData[12] = this.spriteData[12];
+                if (this.image) {
+                    ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
                 }
-
-                // Draw the actual pixel sprite (colors defined in drawPixelArt)
-                drawPixelArt(this.x, drawY, adjustedSpriteData, PIXEL_SIZE, 'player'); 
-
-                // Draw the collision box outline (for debugging, set strokeStyle to a color)
-                // ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
-                // ctx.strokeRect(this.x, this.y, this.width, this.height);
             }
 
             update() {
                 if (this.isJumping) {
                     this.y += this.jumpVelocity;
-                    // Gravity (brings runner down quickly - increased from previous version)
+                    // Gravity (brings runner down quickly)
                     this.jumpVelocity += 1.0; 
 
                     if (this.y >= this.groundY) {
@@ -332,23 +242,13 @@
                 this.x = canvas.width; 
                 this.y = GROUND_Y - this.height;
                 this.speedFactor = config.speedFactor;
-                this.sprite = config.sprite;
-                this.primaryColor = config.color;
-                this.secondaryColor = (config.id === 'obstacle_auburn' || config.id === 'obstacle_florida') ? '#FF671E' : 
-                                      (config.id === 'obstacle_lsu') ? '#FDD017' : 
-                                      '#fff'; // Default secondary/accent color
+                this.image = assetCache[config.imagePath]; // Get image from cache
             }
 
             draw() {
-                // Draw the pixel art for the obstacle
-                drawPixelArt(this.x, this.y, this.sprite, PIXEL_SIZE, {
-                    primary: this.primaryColor,
-                    secondary: this.secondaryColor
-                });
-
-                // Draw the collision box outline (for debugging, set strokeStyle to a color)
-                // ctx.strokeStyle = 'rgba(0, 0, 255, 0.5)';
-                // ctx.strokeRect(this.x, this.y, this.width, this.height);
+                if (this.image) {
+                    ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
+                }
             }
 
             update() {
@@ -506,6 +406,7 @@
     </script>
 </body>
 </html>
+
 
 
 
