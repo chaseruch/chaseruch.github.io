@@ -4,13 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Buyout Bash - Pixel Suitors</title>
-    <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Monospace:wght@400;700&display=swap');
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6;
+            /* Background: Black */
+            background-color: #000000; 
         }
         .score-font {
             font-family: 'Monospace', monospace; /* Classic retro score look */
@@ -21,13 +21,15 @@
             margin-left: auto;
             margin-right: auto;
             overflow: hidden; 
-            background-color: #fff;
+            /* Container background: White */
+            background-color: #ffffff; 
         }
         canvas {
             display: block;
-            background-color: #f9fafb; /* Light background for the track */
+            /* Game track background: Light Gray */
+            background-color: #f3f4f6; 
             border-bottom: 4px solid #1f2937; /* Dark gray ground line */
-            touch-action: manipulation; /* Improves touch handling */
+            touch-action: manipulation;
         }
     </style>
 </head>
@@ -40,13 +42,10 @@
         </div>
         
         <div class="relative">
-            <!-- Game Canvas -->
             <canvas id="gameCanvas" width="900" height="300" class="w-full"></canvas>
 
-            <!-- Score Display (Money) - Using font-mono for retro look -->
             <div id="scoreDisplay" class="absolute top-2 right-4 text-2xl font-black score-font text-gray-700">$0</div>
             
-            <!-- Game Over / Start Message Box -->
             <div id="messageBox" class="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-70 transition-opacity duration-300">
                 <div class="bg-white p-8 rounded-lg shadow-2xl text-center">
                     <p class="text-4xl font-extrabold text-red-600 mb-4" id="messageTitle">PRESS START</p>
@@ -57,39 +56,37 @@
         </div>
     </div>
 
-    <!-- The main game script -->
     <script>
         // --- 1. GAME CONFIGURATION ---
         const PIXEL_SIZE = 4; // Base pixel size for the retro look
         const DOLLARS_PER_SECOND = 10000;
 
         const GAME_CONFIG = {
-            gameTitle: "Buyout Bash",
             player: {
-                width: 40, // Collision width 
-                height: 56, // Collision height 
+                width: 40, 
+                height: 56,
                 x: 100, 
                 jumpHeight: 180,
                 jumpSpeed: 10,
             },
             obstacles: [
-                // Suit Obstacle 1: Auburn (Blue Tie)
+                // Obstacle 1: Auburn (Blue Tie)
                 { id: "obstacle_auburn", width: 32, height: 48, speedFactor: 1.05, 
                     colors: { primary: '#03214A', tie: '#0032A0', shirt: '#fff', skin: '#FDDCC0' } 
                 }, 
-                // Suit Obstacle 2: LSU (Purple Tie, using Gold accent)
+                // Obstacle 2: LSU (Purple Suit, Gold Tie)
                 { id: "obstacle_lsu", width: 32, height: 48, speedFactor: 1.1, 
                     colors: { primary: '#461D7F', tie: '#FDD017', shirt: '#fff', skin: '#FDDCC0' } 
                 },    
-                // Suit Obstacle 3: Florida (Orange Tie)
+                // Obstacle 3: Florida (Blue Suit, Orange Tie)
                 { id: "obstacle_florida", width: 32, height: 48, speedFactor: 1.2, 
                     colors: { primary: '#0021A5', tie: '#FA4616', shirt: '#fff', skin: '#FDDCC0' } 
                 }, 
-                // Suit Obstacle 4: Penn State (Dark Blue Suit, White Tie)
+                // Obstacle 4: Penn State (Dark Blue Suit, White Tie)
                 { id: "obstacle_pennstate", width: 32, height: 48, speedFactor: 1.0, 
                     colors: { primary: '#102E50', tie: '#FFFFFF', shirt: '#fff', skin: '#FDDCC0' } 
                 }, 
-                // Suit Obstacle 5: UCLA (Dark Blue Suit, Gold Tie)
+                // Obstacle 5: UCLA (Dark Blue Suit, Gold Tie)
                 { id: "obstacle_ucla", width: 32, height: 48, speedFactor: 1.15, 
                     colors: { primary: '#2D68C4', tie: '#FFD100', shirt: '#fff', skin: '#FDDCC0' } 
                 },    
@@ -104,7 +101,6 @@
             }
         };
         
-        // Calculated value for score accumulation
         const DOLLARS_PER_FRAME = DOLLARS_PER_SECOND / GAME_CONFIG.gameSettings.framesPerSecond;
 
         // --- 2. SETUP & INITIALIZATION ---
@@ -119,7 +115,7 @@
         let isGameRunning = false;
         let isGameOver = false;
         let gameFrame = 0;
-        let score = 0;
+        let score = 0; 
         let gameSpeed = GAME_CONFIG.gameSettings.initialGameSpeed;
         let player;
         let obstacles = [];
@@ -134,14 +130,14 @@
                 for (let col = 0; col < spriteData[row].length; col++) {
                     const colorIndex = spriteData[row][col];
                     
-                    if (colorIndex !== 0) { // 0 represents transparent/empty pixel
+                    if (colorIndex !== 0) { 
                         let color;
-                        // Color mapping based on index:
+                        
                         if (colorMap.type === 'player') {
                             // Player Colors: 1=Hair/Pants/Dark, 2=Coat (Red), 4=Skin
                             color = colorIndex === 1 ? '#1f2937' : 
                                     colorIndex === 2 ? '#DC2626' : 
-                                    '#FDDCC0'; // Skin Tone for index 4
+                                    '#FDDCC0'; 
                         } else {
                             // Obstacle Colors: 1=Suit (Primary), 2=Shirt (White), 3=Tie (Tie Color), 4=Skin
                             color = colorIndex === 1 ? colorMap.primary : 
@@ -166,14 +162,11 @@
         function handleResize() {
             const containerWidth = canvas.parentElement.clientWidth;
             canvas.width = containerWidth;
-            // Maintain a nice aspect ratio
             canvas.height = Math.min(containerWidth * (300 / 900), 400); 
 
-            // Calculate the ground line based on the new canvas height
             GROUND_Y = canvas.height - 4; 
             
             if (player) {
-                // Adjust player's floor position
                 player.groundY = GROUND_Y - player.height;
                 if (!player.isJumping) {
                     player.y = player.groundY;
@@ -186,7 +179,6 @@
             handleResize();
             player = new Player(GAME_CONFIG.player);
 
-            // Initial UI Setup
             messageTitle.textContent = "WELCOME TO BUYOUT BASH";
             messageBody.textContent = "Click START GAME or press Space/Tap to begin!";
             restartButton.textContent = "START GAME"; 
@@ -196,7 +188,6 @@
             document.addEventListener('touchstart', handleTouch);
             restartButton.addEventListener('click', startGame); 
             
-            // Draw the player immediately so they are visible before the game starts
             if (player) {
                 player.draw();
             }
@@ -217,38 +208,34 @@
                 this.jumpHeight = config.jumpHeight;
                 this.jumpSpeed = config.jumpSpeed;
 
-                // 10x14 pixel sprite data for a coach character (1=Pants/Hair, 2=Coat (Red), 4=Skin)
+                // 10x14 pixel sprite data for a coach character (1=Dark, 2=Red Coat, 4=Skin)
                 this.spriteData = [
-                    [0,0,0,1,1,1,1,0,0,0], // Hair/Head (Index 1)
-                    [0,0,1,4,4,4,4,1,0,0], // Head/Face (Index 4 - Skin)
+                    [0,0,0,1,1,1,1,0,0,0], 
+                    [0,0,1,4,4,4,4,1,0,0], 
                     [0,1,4,4,4,4,4,4,1,0],
-                    [0,1,2,2,2,2,2,2,1,0], // Coat (Index 2 - Red)
+                    [0,1,2,2,2,2,2,2,1,0], 
                     [0,1,2,2,2,2,2,2,1,0],
                     [0,1,2,2,2,2,2,2,1,0],
                     [0,1,2,2,2,2,2,2,1,0],
                     [0,1,2,2,2,2,2,2,1,0],
-                    [0,0,1,1,1,1,1,1,0,0], // Pants (Index 1)
+                    [0,0,1,1,1,1,1,1,0,0], 
                     [0,0,1,1,1,1,1,1,0,0],
-                    [0,1,1,0,0,0,0,1,1,0], // Legs (Index 1)
-                    [1,1,0,0,0,0,0,0,1,1], // Animated Legs (Index 1)
+                    [0,1,1,0,0,0,0,1,1,0], 
+                    [1,1,0,0,0,0,0,0,1,1], 
                     [1,0,0,0,0,0,0,0,0,1],
                     [0,0,0,0,0,0,0,0,0,0]
                 ];
-                this.pixelWidth = 10 * PIXEL_SIZE;
-                this.pixelHeight = 14 * PIXEL_SIZE;
             }
 
             draw() {
                 const drawY = this.y;
                 let adjustedSpriteData = this.spriteData.slice(); 
 
-                // Running Animation (simple leg switch)
+                // Running Animation (Leg switch)
                 if (isGameRunning && !this.isJumping) {
                     if (gameFrame % 10 < 5) {
-                         // Alternate leg position for a running look
                         adjustedSpriteData[11] = [1,0,0,0,1,1,0,0,1,1]; 
                     } else {
-                        // Default leg position
                         adjustedSpriteData[11] = [1,1,0,0,1,1,0,0,0,1];
                     }
                 } 
@@ -259,7 +246,7 @@
             update() {
                 if (this.isJumping) {
                     this.y += this.jumpVelocity;
-                    this.jumpVelocity += 1.0; // Gravity
+                    this.jumpVelocity += 1.0; 
 
                     if (this.y >= this.groundY) {
                         this.y = this.groundY;
@@ -289,10 +276,10 @@
 
                 // Generic 8x12 pixel sprite data for a person in a suit (1=Suit, 2=Shirt, 3=Tie, 4=Skin)
                 this.spriteData = [
-                    [0,0,1,1,1,1,0,0], // Hair/Hat (Index 1)
-                    [0,1,4,4,4,4,1,0], // Skin (Index 4)
-                    [1,2,3,3,3,3,2,1], // Tie (Index 3), Shirt (Index 2)
-                    [1,1,2,2,2,2,1,1], // Suit (Index 1)
+                    [0,0,1,1,1,1,0,0], 
+                    [0,1,4,4,4,4,1,0], 
+                    [1,2,3,3,3,3,2,1], 
+                    [1,1,2,2,2,2,1,1], 
                     [1,1,1,1,1,1,1,1], 
                     [1,1,1,1,1,1,1,1],
                     [1,1,1,1,1,1,1,1],
@@ -300,7 +287,7 @@
                     [1,1,0,0,0,0,1,1],
                     [1,1,0,0,0,0,1,1],
                     [0,1,0,0,0,0,1,0],
-                    [0,1,0,0,0,0,1,0]  // Legs/Feet
+                    [0,1,0,0,0,0,1,0] 
                 ];
             }
 
@@ -313,7 +300,6 @@
             }
 
             checkCollision(player) {
-                // Collision detection logic
                 return (
                     this.x < player.x + player.width &&
                     this.x + this.width > player.x &&
@@ -336,7 +322,7 @@
             // 2. Update Game State
             gameFrame++;
             
-            // Score as Money (accumulates $10,000 per second)
+            // Score as Money 
             score += DOLLARS_PER_FRAME;
             scoreDisplay.textContent = `$${Math.floor(score).toLocaleString()}`;
 
@@ -350,7 +336,6 @@
                 );
                 speedBoostsApplied = requiredBoosts;
                 
-                // Flash message on speed increase
                 messageTitle.textContent = `SPEED X${Math.pow(2, speedBoostsApplied)}!`;
                 messageBox.classList.remove('opacity-0', 'pointer-events-none');
                 setTimeout(() => {
@@ -397,23 +382,20 @@
 
         /** Resets and starts the game. */
         function startGame() {
-            // Reset state
             isGameRunning = true;
             isGameOver = false;
             gameFrame = 0;
-            score = 0; // Reset score to 0
+            score = 0; 
             gameSpeed = GAME_CONFIG.gameSettings.initialGameSpeed;
             obstacles = [];
             speedBoostsApplied = 0; 
             
             handleResize(); 
 
-            // Reset player position and state for the new game
             player.y = player.groundY; 
             player.isJumping = false;
             player.jumpVelocity = 0;
 
-            // Ensure score display resets immediately
             scoreDisplay.textContent = '$0'; 
 
             messageBox.classList.add('opacity-0', 'pointer-events-none');
@@ -450,13 +432,13 @@
         }
 
         function handleTouch(event) {
-            // Prevent accidental double-tap zoom
             event.preventDefault();
             if (!isGameRunning && !isGameOver) {
                 startGame();
             } else if (isGameRunning) {
                 if (player) {
                     player.jump();
+                    
                 }
             }
         }
