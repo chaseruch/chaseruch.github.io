@@ -1,241 +1,49 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Temporal Temple Image Slider</title>
-    
-    <style>
-        /* General Resets and Body Styling */
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f4f4f4;
-            text-align: center;
+{
+    "article_title": "The Scrollytelling Example: A Narrative Journey",
+    "introduction": {
+      "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec odio. Praesent libero. Sed cursus ante dapibus diam. Sed nisi. Nulla quis sem at nibh elementum imperdiet. Duis sagittis ipsum. Praesent mauris. Fusce nec tellus sed augue semper porta. Mauris massa.",
+      "visual_state": "INTRO_VISUAL_LOAD"
+    },
+    "sections": [
+      {
+        "id": 1,
+        "text": "Section 1: The Setup. Ut pharetra augue nec augue. Nam elit magna, hendrerit sit amet, tincidunt ac, interdum vel, mi. Cras dapibus. Vestibulum uta wisi at magna a accumsan. Nullam quis ante. Etiam sit amet orci eget eros faucibus tincidunt. Duis leo. Sed fringilla mauris sit amet nibh. Donec sodales sagittis magna.",
+        "visual_state": {
+          "action": "LOAD_CHART_A",
+          "data_key": "sales_data_q1",
+          "animation": "fadeIn"
         }
-
-        /* Header Styling */
-        .page-header {
-            margin-bottom: 30px;
+      },
+      {
+        "id": 2,
+        "text": "Section 2: Introducing the Conflict. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit.",
+        "visual_state": {
+          "action": "HIGHLIGHT_REGION",
+          "target": "chart_a_red_area",
+          "zoom": 1.5
         }
-
-        .page-header h1 {
-            color: #333;
-            font-size: 2.5em;
-            margin-bottom: 5px;
+      },
+      {
+        "id": 3,
+        "text": "Section 3: The Turning Point. Egestas egestas fringilla. Proin viverra commodo in. Semper tempor vitae aenean eu. Quis aliquet eget vitae. Amet interdum amet imperdiet. Pellentesque in vitae nisl. Nibh quam nisl in. Nunc dictumst adipiscing.",
+        "visual_state": {
+          "action": "TRANSITION_VISUAL",
+          "type": "MAP_VIEW",
+          "focus_coords": [40.7128, -74.0060]
         }
-
-        .page-header p {
-            color: #666;
-            font-size: 1.2em;
+      },
+      {
+        "id": 4,
+        "text": "Section 4: The Conclusion. Volutpat tristique sed at. Diam at est quisque. Sed quis donec vel. Sed vitae sed massa quisque. Non tellus viverra nulla.",
+        "visual_state": {
+          "action": "LOAD_FINAL_IMAGE",
+          "image_url": "placeholder.co/1200x600/3498db/ffffff?text=Final+Triumphant+Visual",
+          "caption": "A summary visual of the entire journey."
         }
-
-        /* Image Slider Container Styling */
-        .image-slider-container {
-            position: relative;
-            max-width: 900px; /* Adjust as needed */
-            margin: 0 auto;
-            overflow: hidden; /* Ensures the images stay within the bounds */
-            cursor: grab;
-            user-select: none;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            /* Add a min-height or aspect ratio for better initial rendering if images are slow to load */
-            padding-bottom: 56.25%; /* Example: 16:9 aspect ratio (height / width * 100%) */
-            height: 0; /* Important for padding-bottom trick */
-        }
-
-        /* Image Styling - Both images should fill the container */
-        .image-slider-container img {
-            position: absolute; /* Position absolutely within the container */
-            top: 0;
-            left: 0;
-            width: 100%; /* Both images should always take 100% of the container width */
-            height: 100%; /* Both images should always take 100% of the container height */
-            object-fit: cover; /* This ensures the image covers the area without distortion, cropping if necessary */
-            object-position: center; /* Center the image within its bounds */
-        }
-
-        .image-before {
-            z-index: 1; /* Before image is the bottom layer */
-        }
-
-        /* Overlay Styling for the 'After' Image (Present Day) */
-        .image-after-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            height: 100%;
-            width: 50%; /* Start the slider at 50% */
-            overflow: hidden; /* Crucial for clipping the 'after' image */
-            z-index: 2; /* After image is the top layer */
-        }
-
-        /* IMPORTANT CHANGE: The image inside the overlay now maintains the full width */
-        .image-after-overlay img {
-            width: 100%; /* It should be the full width of the *container*, not just the overlay */
-            height: 100%; /* It should be the full height of the *container* */
-            position: absolute;
-            top: 0;
-            left: 0; /* Keep it aligned to the left of its *parent overlay* */
-            object-fit: cover;
-            object-position: center;
-        }
-
-
-        /* Divider/Handle Styling */
-        .slider-divider {
-            position: absolute;
-            top: 0;
-            left: 50%; /* Start at 50% */
-            width: 4px;
-            height: 100%;
-            background-color: white;
-            transform: translateX(-50%);
-            z-index: 3; /* Divider is on top of everything */
-            pointer-events: none; /* Allows click-through to the container */
-        }
-
-        .slider-handle {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 50px;
-            height: 50px;
-            background-color: #fff;
-            border: 4px solid #3498db;
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            cursor: grab;
-            box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
-            /* Arrow indicators */
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            pointer-events: all; /* Make the handle itself clickable/draggable */
-        }
-
-        /* Simple arrow effect using pseudo-elements */
-        .slider-handle::before,
-        .slider-handle::after {
-            content: '';
-            position: absolute;
-            width: 0;
-            height: 0;
-            border-style: solid;
-            top: 50%;
-            transform: translateY(-50%);
-        }
-
-        .slider-handle::before { /* Left arrow */
-            left: 8px;
-            border-width: 7px 10px 7px 0;
-            border-color: transparent #3498db transparent transparent;
-        }
-
-        .slider-handle::after { /* Right arrow */
-            right: 8px;
-            border-width: 7px 0 7px 10px;
-            border-color: transparent transparent transparent #3498db;
-        }
-
-        /* Cursor change during drag */
-        .image-slider-container.dragging {
-            cursor: grabbing;
-        }
-    </style>
-</head>
-<body>
-
-    <header class="page-header">
-        <h1>Temporal Temple</h1>
-        <p>The Temple building at UNL withstands the test of time for a century.</p>
-    </header>
-
-    <div class="image-slider-container">
-        <img class="image-before" src="58.jpg" alt="The Temple building at UNL, 1925">
-
-        <div class="image-after-overlay">
-            <img src="present_temple.jpg" alt="The Temple building at UNL, Present Day">
-        </div>
-
-        <div class="slider-divider">
-            <div class="slider-handle"></div>
-        </div>
-    </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const container = document.querySelector('.image-slider-container');
-            const overlay = document.querySelector('.image-after-overlay');
-            const divider = document.querySelector('.slider-divider');
-            const handle = document.querySelector('.slider-handle');
-
-            let isDragging = false;
-
-            // --- Mouse and Touch Event Handlers ---
-
-            // Start Dragging
-            const startDrag = (e) => {
-                e.preventDefault(); 
-                isDragging = true;
-                container.classList.add('dragging');
-                
-                // Add listeners to document to track movement even if mouse leaves container
-                document.addEventListener('mousemove', onDrag);
-                document.addEventListener('mouseup', endDrag);
-                document.addEventListener('touchmove', onDrag);
-                document.addEventListener('touchend', endDrag);
-            };
-
-            // Calculate Drag Position
-            const onDrag = (e) => {
-                if (!isDragging) return;
-
-                // Determine if it's a touch or mouse event
-                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-
-                const containerRect = container.getBoundingClientRect();
-                const containerX = containerRect.left;
-                const containerWidth = containerRect.width;
-
-                // Calculate the new position relative to the container
-                let newPos = clientX - containerX;
-
-                // Clamp the position to stay within the container bounds (0 to Width)
-                if (newPos < 0) {
-                    newPos = 0;
-                } else if (newPos > containerWidth) {
-                    newPos = containerWidth;
-                }
-
-                // Convert the pixel position to a percentage
-                const percentage = (newPos / containerWidth) * 100;
-
-                // Apply the new position
-                overlay.style.width = percentage + '%';
-                divider.style.left = percentage + '%';
-            };
-
-            // Stop Dragging
-            const endDrag = () => {
-                isDragging = false;
-                container.classList.remove('dragging');
-                
-                // Remove document-level listeners
-                document.removeEventListener('mousemove', onDrag);
-                document.removeEventListener('mouseup', endDrag);
-                document.removeEventListener('touchmove', onDrag);
-                document.removeEventListener('touchend', endDrag);
-            };
-
-            // --- Event Listeners to initiate drag ---
-            // Allow dragging on the handle or the container itself
-            container.addEventListener('mousedown', startDrag);
-            container.addEventListener('touchstart', startDrag);
-            handle.addEventListener('mousedown', startDrag);
-            handle.addEventListener('touchstart', startDrag);
-        });
-    </script>
-</body>
-</html>
+      }
+    ],
+    "epilogue": {
+      "text": "The end. Fusce ac felis sit amet ligula pharetra sollicitudin. Praesent id massa id nisl venenatis lacinia. Curabitur convallis. Sed accumsan lorem in dui. Cras non dolor. Aenean posuere, tortor sed cursus feugiat, nunc augue blandit nunc, eu sollicitudin urna dolor sagittis lacus. Donec elit libero, sodales nec, volutpat a, suscipit non, turpis.",
+      "visual_state": "OUTRO_VISUAL_RESET"
+    }
+  }
