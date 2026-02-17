@@ -1,0 +1,1378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nebraska Data Center Land Purchases</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600;700&display=swap');
+
+  :root {
+    --bg: #0a0e14;
+    --panel: #111820;
+    --border: #1e2d3d;
+    --accent: #00e5cc;
+    --accent2: #ff6b35;
+    --accent3: #a78bfa;
+    --text: #c9d5e0;
+    --muted: #4a6080;
+    --google: #4285f4;
+    --meta: #0082fb;
+    --travelers: #c8102e;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* grid noise texture overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,204,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,204,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 24px;
+  }
+
+  /* ── HEADER ── */
+  header {
+    margin-bottom: 48px;
+    border-left: 3px solid var(--accent);
+    padding-left: 20px;
+  }
+
+  .header-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  header h1 {
+    font-size: 32px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.2;
+    margin-bottom: 12px;
+  }
+
+  header p {
+    color: var(--muted);
+    font-size: 13px;
+    max-width: 600px;
+  }
+
+  .header-date {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 8px;
+  }
+
+  /* ── STATS ROW ── */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+
+  .stat-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--accent);
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; right: 0;
+    width: 60px; height: 60px;
+    background: radial-gradient(circle at bottom right, rgba(0,229,204,0.08), transparent);
+  }
+
+  .stat-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .stat-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--accent);
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .stat-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* ── SECTION HEADERS ── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    margin-top: 40px;
+  }
+
+  .section-header h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .section-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    background: rgba(0,229,204,0.1);
+    color: var(--accent);
+    border: 1px solid rgba(0,229,204,0.2);
+    padding: 2px 8px;
+    letter-spacing: 0.1em;
+  }
+
+  .divider {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── PURCHASE TABLE ── */
+  .table-wrap {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    overflow-x: auto;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  thead th {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    background: rgba(0,0,0,0.3);
+    white-space: nowrap;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid rgba(30,45,61,0.6);
+    transition: background 0.15s;
+  }
+
+  tbody tr:hover { background: rgba(0,229,204,0.04); }
+
+  td {
+    padding: 14px 16px;
+    font-size: 13px;
+    vertical-align: top;
+  }
+
+  .company-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    color: #fff;
+  }
+
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .llc-name {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--accent3);
+  }
+
+  .county-tag {
+    background: rgba(167,139,250,0.1);
+    border: 1px solid rgba(167,139,250,0.2);
+    color: var(--accent3);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 2px 8px;
+    display: inline-block;
+  }
+
+  .price {
+    color: var(--accent);
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 600;
+  }
+
+  .acres {
+    color: var(--accent2);
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .year-val {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .notes-cell {
+    font-size: 12px;
+    color: var(--muted);
+    max-width: 220px;
+    line-height: 1.5;
+  }
+
+  /* ── LLC INTELLIGENCE PANEL ── */
+  .llc-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .llc-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 20px;
+  }
+
+  .llc-panel-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .llc-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(30,45,61,0.4);
+  }
+
+  .llc-item:last-child { border-bottom: none; }
+
+  .llc-item-name {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--accent3);
+    flex: 1;
+  }
+
+  .llc-county {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  /* ── RESEARCH SOURCES ── */
+  .sources-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+
+  .source-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 18px;
+    position: relative;
+  }
+
+  .source-card-type {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--accent2);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .source-card h3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 8px;
+    line-height: 1.4;
+  }
+
+  .source-card p {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .source-card a {
+    color: var(--accent);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    text-decoration: none;
+    display: inline-block;
+    margin-top: 10px;
+    border-bottom: 1px solid rgba(0,229,204,0.3);
+    padding-bottom: 1px;
+    transition: border-color 0.2s;
+  }
+
+  .source-card a:hover { border-color: var(--accent); }
+
+  .priority-tag {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    padding: 2px 6px;
+    letter-spacing: 0.1em;
+  }
+
+  .priority-high { background: rgba(255,107,53,0.15); color: var(--accent2); border: 1px solid rgba(255,107,53,0.3); }
+  .priority-med  { background: rgba(0,229,204,0.1); color: var(--accent); border: 1px solid rgba(0,229,204,0.2); }
+
+  /* ── ACTIVITY TIMELINE ── */
+  .timeline {
+    position: relative;
+    padding-left: 32px;
+  }
+
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 6px; top: 8px; bottom: 8px;
+    width: 1px;
+    background: var(--border);
+  }
+
+  .timeline-item {
+    position: relative;
+    margin-bottom: 28px;
+  }
+
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -28px; top: 6px;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--bg);
+    box-shadow: 0 0 8px rgba(0,229,204,0.5);
+  }
+
+  .timeline-year {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+
+  .timeline-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 4px;
+  }
+
+  .timeline-desc {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    margin-top: 60px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* ── WATER SECTION STYLES ── */
+  :root {
+    --water: #38bdf8;
+    --water-dim: rgba(56,189,248,0.12);
+    --water-border: rgba(56,189,248,0.25);
+    --danger: #f87171;
+    --danger-dim: rgba(248,113,113,0.1);
+    --warn: #fbbf24;
+    --warn-dim: rgba(251,191,36,0.1);
+    --safe: #34d399;
+    --safe-dim: rgba(52,211,153,0.1);
+  }
+
+  .water-header {
+    border-left-color: var(--water) !important;
+    margin-top: 60px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+
+  .water-tag {
+    background: var(--water-dim);
+    color: var(--water);
+    border: 1px solid var(--water-border);
+  }
+
+  .water-stat-card {
+    border-top-color: var(--water) !important;
+  }
+
+  .water-stat-card .stat-value {
+    color: var(--water);
+  }
+
+  .water-stat-card::after {
+    background: radial-gradient(circle at bottom right, rgba(56,189,248,0.08), transparent) !important;
+  }
+
+  /* aquifer zone map */
+  .aquifer-map {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .aquifer-zone {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .aquifer-zone::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+
+  .zone-safe::before { background: var(--safe); }
+  .zone-warn::before { background: var(--warn); }
+  .zone-danger::before { background: var(--danger); }
+  .zone-monitor::before { background: var(--water); }
+
+  .zone-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .zone-safe .zone-label { color: var(--safe); }
+  .zone-warn .zone-label { color: var(--warn); }
+  .zone-danger .zone-label { color: var(--danger); }
+  .zone-monitor .zone-label { color: var(--water); }
+
+  .zone-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 6px;
+  }
+
+  .zone-desc {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .zone-stat {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  .zone-stat-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 20px;
+    font-weight: 600;
+  }
+
+  .zone-safe .zone-stat-num { color: var(--safe); }
+  .zone-warn .zone-stat-num { color: var(--warn); }
+  .zone-danger .zone-stat-num { color: var(--danger); }
+  .zone-monitor .zone-stat-num { color: var(--water); }
+
+  .zone-stat-label {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* water consumption bar chart */
+  .water-bar-wrap {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+
+  .bar-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+
+  .bar-row {
+    display: grid;
+    grid-template-columns: 160px 1fr 100px;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .bar-label {
+    font-size: 12px;
+    color: var(--text);
+    text-align: right;
+    line-height: 1.3;
+  }
+
+  .bar-track {
+    height: 20px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.5s ease;
+  }
+
+  .bar-val {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  /* wue comparison table */
+  .wue-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .wue-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 16px;
+    text-align: center;
+  }
+
+  .wue-company {
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 8px;
+  }
+
+  .wue-number {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .wue-unit {
+    font-size: 10px;
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .wue-trend {
+    font-size: 10px;
+    margin-top: 6px;
+    padding: 2px 6px;
+    display: inline-block;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .trend-up { background: var(--danger-dim); color: var(--danger); }
+  .trend-down { background: var(--safe-dim); color: var(--safe); }
+  .trend-avg { background: var(--warn-dim); color: var(--warn); }
+
+  /* foia request box */
+  .foia-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .foia-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--water);
+    padding: 18px;
+  }
+
+  .foia-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 4px;
+  }
+
+  .foia-target {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--water);
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+  }
+
+  .foia-desc {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .foia-ask {
+    margin-top: 10px;
+    padding: 10px;
+    background: rgba(56,189,248,0.06);
+    border: 1px solid var(--water-border);
+    font-size: 11px;
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    line-height: 1.6;
+  }
+
+  /* risk meter */
+  .risk-meter-wrap {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+
+  .risk-row {
+    display: grid;
+    grid-template-columns: 200px 1fr 80px;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgba(30,45,61,0.5);
+  }
+
+  .risk-row:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .risk-label {
+    font-size: 12px;
+    color: var(--text);
+    line-height: 1.4;
+  }
+
+  .risk-label small {
+    display: block;
+    color: var(--muted);
+    font-size: 10px;
+    font-family: 'IBM Plex Mono', monospace;
+    margin-top: 2px;
+  }
+
+  .risk-track {
+    height: 10px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 5px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .risk-fill {
+    height: 100%;
+    border-radius: 5px;
+  }
+
+  .risk-badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    padding: 3px 7px;
+    letter-spacing: 0.1em;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .risk-low { background: var(--safe-dim); color: var(--safe); }
+  .risk-med { background: var(--warn-dim); color: var(--warn); }
+  .risk-high { background: var(--danger-dim); color: var(--danger); }
+  .risk-crit { background: rgba(248,113,113,0.2); color: #ff4444; border: 1px solid rgba(255,68,68,0.3); }
+
+  @media (max-width: 768px) {
+    .stats-row { grid-template-columns: 1fr 1fr; }
+    .sources-grid { grid-template-columns: 1fr; }
+    .llc-grid { grid-template-columns: 1fr; }
+    .aquifer-map { grid-template-columns: 1fr; }
+    .wue-grid { grid-template-columns: 1fr 1fr; }
+    .foia-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- HEADER -->
+  <header>
+    <div class="header-tag">RESEARCH INTELLIGENCE</div>
+    <h1>Nebraska Data Center<br>Land Acquisition Map</h1>
+    <p>Tracking hyperscale technology company land purchases across Nebraska counties — compiled from county assessor records, LLC filings, ImagiNE Nebraska disclosures, and investigative reporting.</p>
+    <div class="header-date">COMPILED: FEBRUARY 2026 &nbsp;|&nbsp; SOURCES: SARPY / LANCASTER / DOUGLAS COUNTY ASSESSORS + FLATWATER FREE PRESS</div>
+  </header>
+
+  <!-- STATS -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">Total Acreage Confirmed</div>
+      <div class="stat-value">2,300+</div>
+      <div class="stat-sub">acres converted from farmland</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Land Spend</div>
+      <div class="stat-value">$96M+</div>
+      <div class="stat-sub">in confirmed acquisitions</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Companies Active</div>
+      <div class="stat-value">3+</div>
+      <div class="stat-sub">Google, Meta, Travelers confirmed</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Capital Investment</div>
+      <div class="stat-value">$3.5B+</div>
+      <div class="stat-sub">announced data center spend in NE</div>
+    </div>
+  </div>
+
+  <!-- KNOWN PURCHASES TABLE -->
+  <div class="section-header">
+    <h2>Confirmed Land Purchases</h2>
+    <span class="section-tag">PUBLIC RECORD</span>
+    <div class="divider"></div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Company</th>
+          <th>LLC Used</th>
+          <th>County</th>
+          <th>City / Location</th>
+          <th>Acres</th>
+          <th>Price</th>
+          <th>Year</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="company-badge"><span class="dot" style="background:#4285f4"></span>Google</span></td>
+          <td><span class="llc-name">Fireball Group LLC</span></td>
+          <td><span class="county-tag">SARPY</span></td>
+          <td>Papillion</td>
+          <td><span class="acres">280</span></td>
+          <td><span class="price">$25M</span></td>
+          <td><span class="year-val">2019</span></td>
+          <td class="notes-cell">First NE data center. Paid ~10x regional per-acre avg. Delaware LLC.</td>
+        </tr>
+        <tr>
+          <td><span class="company-badge"><span class="dot" style="background:#4285f4"></span>Google</span></td>
+          <td><span class="llc-name">Westwood Solutions LLC</span></td>
+          <td><span class="county-tag">DOUGLAS</span></td>
+          <td>Omaha (NW, near State St & Blair High Rd)</td>
+          <td><span class="acres">400+</span></td>
+          <td><span class="price">$21M</span></td>
+          <td><span class="year-val">2022</span></td>
+          <td class="notes-cell">90% previously farmland. Same Delaware address as Fireball Group LLC.</td>
+        </tr>
+        <tr>
+          <td><span class="company-badge"><span class="dot" style="background:#4285f4"></span>Google</span></td>
+          <td><span class="llc-name">Agate LLC</span></td>
+          <td><span class="county-tag">LANCASTER</span></td>
+          <td>Lincoln (near I-80 & N 56th St)</td>
+          <td><span class="acres">~580</span></td>
+          <td><span class="price">N/D</span></td>
+          <td><span class="year-val">2023</span></td>
+          <td class="notes-cell">$600M facility. "Project Agate." Ground prep began Aug 2023. 500+ acres formerly farmland.</td>
+        </tr>
+        <tr>
+          <td><span class="company-badge"><span class="dot" style="background:#0082fb"></span>Meta</span></td>
+          <td><span class="llc-name">Raven Northbrook LLC</span></td>
+          <td><span class="county-tag">SARPY</span></td>
+          <td>Papillion / Springfield (Hwy 50)</td>
+          <td><span class="acres">~900</span></td>
+          <td><span class="price">$50M+</span></td>
+          <td><span class="year-val">2017–22</span></td>
+          <td class="notes-cell">9-bldg campus, 4M sq ft. Paid ~7x farmland per-acre avg. Expanding into Springfield.</td>
+        </tr>
+        <tr>
+          <td><span class="company-badge"><span class="dot" style="background:#c8102e"></span>Travelers</span></td>
+          <td><span class="llc-name">Travelers Cos. (direct)</span></td>
+          <td><span class="county-tag">SARPY</span></td>
+          <td>Papillion (Hwy 50 & Schram Rd)</td>
+          <td><span class="acres">140</span></td>
+          <td><span class="price">N/D</span></td>
+          <td><span class="year-val">~2013</span></td>
+          <td class="notes-cell">$200M corporate data center. Company's primary US DC. On former farmland with old barn.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- LLC INTELLIGENCE -->
+  <div class="section-header">
+    <h2>Shell LLC Intelligence</h2>
+    <span class="section-tag">CROSS-REFERENCE TARGET</span>
+    <div class="divider"></div>
+  </div>
+
+  <div class="llc-grid">
+    <div class="llc-panel">
+      <div class="llc-panel-title">
+        <span class="dot" style="background:#4285f4"></span>
+        Google — Known Nebraska LLCs
+      </div>
+      <div class="llc-item">
+        <div>
+          <div class="llc-item-name">Fireball Group LLC</div>
+          <div class="llc-county">→ Sarpy County / Papillion</div>
+        </div>
+      </div>
+      <div class="llc-item">
+        <div>
+          <div class="llc-item-name">Westwood Solutions LLC</div>
+          <div class="llc-county">→ Douglas County / NW Omaha</div>
+        </div>
+      </div>
+      <div class="llc-item">
+        <div>
+          <div class="llc-item-name">Agate LLC</div>
+          <div class="llc-county">→ Lancaster County / Lincoln</div>
+        </div>
+      </div>
+      <div style="margin-top:12px; font-size:11px; color:var(--muted);">
+        All three LLCs registered at same Delaware address. Pattern: Google names LLCs after codenames for their projects.
+      </div>
+    </div>
+    <div class="llc-panel">
+      <div class="llc-panel-title">
+        <span class="dot" style="background:#0082fb"></span>
+        Meta — Known Nebraska LLCs
+      </div>
+      <div class="llc-item">
+        <div>
+          <div class="llc-item-name">Raven Northbrook LLC</div>
+          <div class="llc-county">→ Sarpy County / Papillion + Springfield</div>
+        </div>
+      </div>
+      <div style="margin-top:12px; padding-top:12px; border-top: 1px solid var(--border);">
+        <div style="font-size:11px; color:var(--accent2); font-family:'IBM Plex Mono',monospace; margin-bottom:6px;">⚠ WATCH FOR NEW LLCs</div>
+        <div style="font-size:11px; color:var(--muted);">Amazon, Microsoft, and other hyperscalers have NOT confirmed Nebraska land purchases yet — but may use similar Delaware LLC structures. Monitor NE SOS filings for new Delaware-registered LLCs in Douglas, Sarpy, and Lancaster counties.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACTIVITY TIMELINE -->
+  <div class="section-header">
+    <h2>Acquisition Timeline</h2>
+    <span class="section-tag">CHRONOLOGY</span>
+    <div class="divider"></div>
+  </div>
+
+  <div class="timeline">
+    <div class="timeline-item">
+      <div class="timeline-year">2017</div>
+      <div class="timeline-title">Meta enters Nebraska — Sarpy County</div>
+      <div class="timeline-desc">Facebook begins land acquisition in Papillion via Raven Northbrook LLC along Hwy 50 corridor. First major hyperscaler to target Nebraska farmland.</div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-year">2019</div>
+      <div class="timeline-title">Google breaks ground — Papillion (Fireball Group)</div>
+      <div class="timeline-desc">280 acres purchased for ~$25M in Sarpy County. Paid ~10x regional farmland average. Google's first Nebraska data center comes online.</div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-year">2021–22</div>
+      <div class="timeline-title">Meta campus expands to 900+ acres / Google buys Douglas County land</div>
+      <div class="timeline-desc">Meta announces 9-building, 4M sq ft campus expansion into Springfield. Google acquires 400+ acres in NW Omaha via Westwood Solutions LLC for a second campus.</div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-year">2023</div>
+      <div class="timeline-title">Google announces Lincoln ($600M) — Project Agate revealed</div>
+      <div class="timeline-desc">~580 acres acquired near I-80 & N 56th St in Lancaster County. Google discloses $1.2B total NE infrastructure spend for 2023. OPPD plans $2B+ power capacity expansion by 2030 to keep up.</div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-year">2024–25</div>
+      <div class="timeline-title">$750M Omaha facility under construction / AI buildout accelerates</div>
+      <div class="timeline-desc">Google now building four data center campuses in Nebraska. AI demand driving hyperscale expansion nationally — Nebraska's power costs & land availability making it a top-tier target.</div>
+    </div>
+    <div class="timeline-item" style="opacity:0.6;">
+      <div class="timeline-year" style="color:var(--accent2);">2025–26 →</div>
+      <div class="timeline-title">Next wave expected</div>
+      <div class="timeline-desc">Monitor for Amazon/AWS, Microsoft, and smaller colocation operators entering Nebraska market. OPPD interconnection queue and NE SOS LLC filings are the earliest warning signals.</div>
+    </div>
+  </div>
+
+  <!-- RESEARCH SOURCES -->
+  <div class="section-header">
+    <h2>Research Sources</h2>
+    <span class="section-tag">MONITOR THESE</span>
+    <div class="divider"></div>
+  </div>
+
+  <div class="sources-grid">
+    <div class="source-card">
+      <div class="priority-tag priority-high">HIGH PRIORITY</div>
+      <div class="source-card-type">County Records</div>
+      <h3>Sarpy County Assessor</h3>
+      <p>Primary hotspot — home to Meta & Google Papillion campuses. Search by LLC name in property records.</p>
+      <a href="https://www.sarpy.gov/assessor" target="_blank">sarpy.gov/assessor →</a>
+    </div>
+    <div class="source-card">
+      <div class="priority-tag priority-high">HIGH PRIORITY</div>
+      <div class="source-card-type">State Incentives</div>
+      <h3>ImagiNE Nebraska Act Reports</h3>
+      <p>Nebraska DOR publishes annual reports listing companies receiving data center tax incentives. $200M+ investment threshold required for data centers.</p>
+      <a href="https://revenue.nebraska.gov/incentives/imagine-nebraska-act" target="_blank">revenue.nebraska.gov →</a>
+    </div>
+    <div class="source-card">
+      <div class="priority-tag priority-high">HIGH PRIORITY</div>
+      <div class="source-card-type">Corporate Filings</div>
+      <h3>Nebraska Secretary of State</h3>
+      <p>Search for newly registered Delaware LLCs. Shell company names often encode project codenames (Fireball, Agate, Westwood).</p>
+      <a href="https://www.nebraska.gov/sos/corp/" target="_blank">nebraska.gov/sos →</a>
+    </div>
+    <div class="source-card">
+      <div class="priority-tag priority-med">MONITOR</div>
+      <div class="source-card-type">Utility Filings</div>
+      <h3>OPPD Interconnection Queue</h3>
+      <p>Large data centers require massive power loads. OPPD approved $2–2.2B capacity expansion by 2030 largely for data centers. Power agreements precede construction.</p>
+      <a href="https://www.oppd.com" target="_blank">oppd.com →</a>
+    </div>
+    <div class="source-card">
+      <div class="priority-tag priority-med">MONITOR</div>
+      <div class="source-card-type">Investigative Journalism</div>
+      <h3>Flatwater Free Press</h3>
+      <p>Nebraska's top investigative outlet. Their "Who's Buying Nebraska?" series directly tracks tech company farmland purchases using assessor records + state sales data.</p>
+      <a href="https://flatwaterfreepress.org" target="_blank">flatwaterfreepress.org →</a>
+    </div>
+    <div class="source-card">
+      <div class="priority-tag priority-med">MONITOR</div>
+      <div class="source-card-type">County Records</div>
+      <h3>Lancaster + Douglas Assessors</h3>
+      <p>Lincoln (Google Agate project) and NW Omaha (Google Westwood) are active zones. Cross-reference large vacant parcel sales to Delaware LLCs.</p>
+      <a href="https://assessor.lincoln.ne.gov" target="_blank">assessor.lincoln.ne.gov →</a>
+    </div>
+  </div>
+
+  <!-- PYTHON SCRIPT NOTE -->
+  <div style="background: var(--panel); border: 1px solid var(--border); border-left: 3px solid var(--accent3); padding: 20px; margin-top: 40px;">
+    <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--accent3); letter-spacing:0.12em; margin-bottom:10px;">AUTOMATION TOOL</div>
+    <div style="font-size:13px; font-weight:600; color:#fff; margin-bottom:8px;">Python Scraper: <span style="font-family:'IBM Plex Mono',monospace; color:var(--accent3);">nebraska_datacenter_scraper.py</span></div>
+    <div style="font-size:12px; color:var(--muted); line-height:1.7;">
+      The accompanying Python script automates searches across all three county assessors, the Nebraska Secretary of State LLC database, ImagiNE Nebraska DOR reports, and OPPD news. It exports results to Excel and CSV.<br><br>
+      <span style="color:var(--text);">Install:</span> <span style="font-family:'IBM Plex Mono',monospace; color:var(--accent);">pip install requests beautifulsoup4 lxml pandas openpyxl</span><br>
+      <span style="color:var(--text);">Run:</span> <span style="font-family:'IBM Plex Mono',monospace; color:var(--accent);">python nebraska_datacenter_scraper.py</span>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════ -->
+  <!-- WATER & OGALLALA AQUIFER SECTION                   -->
+  <!-- ═══════════════════════════════════════════════════ -->
+
+  <header class="water-header" style="margin-top:80px; border-left: 3px solid var(--water); padding-left: 20px; margin-bottom:48px;">
+    <div class="header-tag" style="color:var(--water);">ENVIRONMENTAL IMPACT ANALYSIS</div>
+    <h1 style="font-size:28px;">Water Consumption &<br>Ogallala Aquifer Risk</h1>
+    <p style="color:var(--muted); font-size:13px; max-width:640px;">Data centers are among the most water-intensive industrial facilities ever built. This section maps their consumption footprint against Nebraska's groundwater geography — including the Ogallala Aquifer — and identifies the data sources and FOIA requests that can illuminate the true impact.</p>
+    <div class="header-date" style="color:var(--muted);">DATA: USGS HIGH PLAINS MONITORING · UNL CONSERVATION & SURVEY DIVISION · EESI · LAWRENCE BERKELEY NAT'L LAB</div>
+  </header>
+
+  <!-- WATER STATS ROW -->
+  <div class="stats-row">
+    <div class="stat-card water-stat-card">
+      <div class="stat-label">Google (avg per facility)</div>
+      <div class="stat-value">550K</div>
+      <div class="stat-sub">gallons per day / 200M gal/year</div>
+    </div>
+    <div class="stat-card water-stat-card">
+      <div class="stat-label">Industry avg WUE</div>
+      <div class="stat-value">1.8 L</div>
+      <div class="stat-sub">liters per kWh — "Water Usage Effectiveness"</div>
+    </div>
+    <div class="stat-card water-stat-card">
+      <div class="stat-label">US data centers (2023)</div>
+      <div class="stat-value">17B</div>
+      <div class="stat-sub">gallons consumed for cooling — projected to 2–4x by 2028</div>
+    </div>
+    <div class="stat-card water-stat-card">
+      <div class="stat-label">Nebraska holds</div>
+      <div class="stat-value">70%</div>
+      <div class="stat-sub">of all Ogallala Aquifer water storage</div>
+    </div>
+  </div>
+
+  <!-- HOW DATA CENTERS USE WATER -->
+  <div class="section-header">
+    <h2 style="color:var(--water);">How Data Centers Consume Water</h2>
+    <span class="section-tag water-tag">MECHANISM</span>
+    <div class="divider"></div>
+  </div>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;">
+    <div style="background:var(--panel); border:1px solid var(--border); padding:24px;">
+      <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--water); letter-spacing:0.12em; margin-bottom:12px;">PRIMARY METHOD — MOST COMMON IN NEBRASKA</div>
+      <div style="font-size:14px; font-weight:600; color:#fff; margin-bottom:10px;">Evaporative Cooling (Open-Loop)</div>
+      <div style="font-size:12px; color:var(--muted); line-height:1.7;">
+        Hot server air or water is cooled by passing it through a cooling tower where water evaporates, carrying heat into the atmosphere. The evaporated water is gone permanently — it never returns to the local aquifer or river system. This is the dominant method at Nebraska's hyperscale campuses because it uses less electricity, and Nebraska's moderate climate makes it efficient. <br><br>
+        <span style="color:var(--danger);">⚠ ~80% of water withdrawn evaporates and is permanently consumed.</span>
+      </div>
+    </div>
+    <div style="background:var(--panel); border:1px solid var(--border); padding:24px;">
+      <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--safe); letter-spacing:0.12em; margin-bottom:12px;">EMERGING — REDUCES WATER FOOTPRINT</div>
+      <div style="font-size:14px; font-weight:600; color:#fff; margin-bottom:10px;">Direct-to-Chip Liquid Cooling (Closed-Loop)</div>
+      <div style="font-size:12px; color:var(--muted); line-height:1.7;">
+        Liquid coolant is circulated directly through pipes attached to CPU and GPU chips. Heat is removed mechanically without evaporation, dramatically reducing water consumption — by up to 95% compared to open-loop systems. Meta's newest facilities use a closed-loop approach and report a WUE of 0.20 L/kWh vs. the 1.8 L/kWh industry average. AI-optimized racks increasingly require this method due to extreme chip heat density.<br><br>
+        <span style="color:var(--safe);">✓ Eliminates evaporative loss; uses more electricity instead.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- WATER CONSUMPTION BAR CHART -->
+  <div class="water-bar-wrap">
+    <div class="bar-title">Annual Water Consumption — Nebraska Data Center Companies (Estimated)</div>
+
+    <div class="bar-row">
+      <div class="bar-label">Google<br><span style="font-size:10px; color:var(--muted);">Council Bluffs, Iowa (comparable)</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:100%; background:linear-gradient(90deg,#4285f4,#38bdf8);"></div></div>
+      <div class="bar-val">1B gal/yr</div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">Google Papillion<br><span style="font-size:10px; color:var(--muted);">Sarpy County (est.)</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:65%; background:linear-gradient(90deg,#4285f4,#38bdf8);"></div></div>
+      <div class="bar-val">~600M gal/yr</div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">Meta Sarpy Campus<br><span style="font-size:10px; color:var(--muted);">4M sq ft — 9 buildings</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:85%; background:linear-gradient(90deg,#0082fb,#38bdf8);"></div></div>
+      <div class="bar-val">~776M gal/yr</div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">Avg US town of 50,000<br><span style="font-size:10px; color:var(--muted);">residential water use</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:18%; background:linear-gradient(90deg,#a78bfa,#38bdf8);"></div></div>
+      <div class="bar-val">~182M gal/yr</div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">Papillion, NE pop. ~26K<br><span style="font-size:10px; color:var(--muted);">entire city residential use</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:10%; background:linear-gradient(90deg,#34d399,#38bdf8);"></div></div>
+      <div class="bar-val">~95M gal/yr</div>
+    </div>
+
+    <div style="margin-top:18px; font-size:11px; color:var(--muted); border-top:1px solid var(--border); padding-top:12px;">
+      <span style="color:var(--water);">NOTE:</span> Nebraska data center water figures are estimated from publicly reported WUE metrics and facility power consumption. Actual consumption is not publicly disclosed by companies at a facility-specific level for Nebraska. This is itself an important data gap.
+    </div>
+  </div>
+
+  <!-- WUE COMPARISON BY COMPANY -->
+  <div class="section-header">
+    <h2 style="color:var(--water);">Water Efficiency by Company (WUE)</h2>
+    <span class="section-tag water-tag">LITERS / kWh</span>
+    <div class="divider"></div>
+  </div>
+
+  <div class="wue-grid">
+    <div class="wue-card">
+      <div class="wue-company">Meta (new builds)</div>
+      <div class="wue-number" style="color:var(--safe);">0.20</div>
+      <div class="wue-unit">L / kWh</div>
+      <div class="wue-trend trend-down">↓ 89% below avg</div>
+    </div>
+    <div class="wue-card">
+      <div class="wue-company">AWS (Amazon)</div>
+      <div class="wue-number" style="color:var(--safe);">0.19</div>
+      <div class="wue-unit">L / kWh</div>
+      <div class="wue-trend trend-down">↓ Best-in-class</div>
+    </div>
+    <div class="wue-card">
+      <div class="wue-company">Industry Average</div>
+      <div class="wue-number" style="color:var(--warn);">1.80</div>
+      <div class="wue-unit">L / kWh</div>
+      <div class="wue-trend trend-avg">⚠ Benchmark</div>
+    </div>
+    <div class="wue-card">
+      <div class="wue-company">Evaporative (worst case)</div>
+      <div class="wue-number" style="color:var(--danger);">2.50</div>
+      <div class="wue-unit">L / kWh</div>
+      <div class="wue-trend trend-up">↑ Open-loop max</div>
+    </div>
+  </div>
+
+  <div style="background:rgba(56,189,248,0.05); border:1px solid var(--water-border); padding:16px; margin-bottom:8px; font-size:12px; color:var(--text); line-height:1.7;">
+    <span style="color:var(--water); font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:0.1em;">KEY INSIGHT &nbsp;|&nbsp;</span>
+    WUE metrics are self-reported and not verified by any independent or government body. Less than one-third of data center operators actively track water usage at all. The figures above are global averages — facility-specific Nebraska consumption numbers are not publicly available. This lack of transparency is itself a major research and policy gap.
+  </div>
+
+  <!-- OGALLALA AQUIFER GEOGRAPHY -->
+  <div class="section-header" style="margin-top:40px;">
+    <h2 style="color:var(--water);">Ogallala Aquifer — Nebraska Geography</h2>
+    <span class="section-tag water-tag">RISK ZONES</span>
+    <div class="divider"></div>
+  </div>
+
+  <div class="aquifer-map">
+    <div class="aquifer-zone zone-safe">
+      <div class="zone-label">LOW DIRECT RISK — CURRENT DATA CENTER ZONE</div>
+      <div class="zone-title">Eastern Nebraska (Sarpy / Lancaster / Douglas)</div>
+      <div class="zone-desc">This is where all current data centers sit. The Ogallala does not extend into this area — instead, eastern Nebraska draws from the shallow alluvial aquifer connected to the Platte and Missouri Rivers, which recharges relatively quickly from precipitation and river interaction. Data centers here strain municipal water systems rather than directly drawing from the Ogallala.</div>
+      <div class="zone-stat">
+        <span class="zone-stat-num">+0%</span>
+        <span class="zone-stat-label">aquifer decline since 1950 in eastern NE (some areas have risen)</span>
+      </div>
+    </div>
+    <div class="aquifer-zone zone-warn">
+      <div class="zone-label">TRANSITION ZONE — MONITOR CLOSELY</div>
+      <div class="zone-title">Central Nebraska (York / Fillmore / Butler Counties)</div>
+      <div class="zone-desc">This area sits at the eastern fringe of the Ogallala. UNL's 2024 groundwater report found the largest year-over-year declines here — 10 to 15 feet lower than 2023 due to drought. If data center expansion moves westward along I-80, this zone becomes a flashpoint. Already stressed by irrigation agriculture, it has limited capacity to absorb large industrial water draws.</div>
+      <div class="zone-stat">
+        <span class="zone-stat-num">-15 ft</span>
+        <span class="zone-stat-label">water level decline 2023→2024 (UNL annual report)</span>
+      </div>
+    </div>
+    <div class="aquifer-zone zone-danger">
+      <div class="zone-label">HIGH RISK — AQUIFER CRITICALLY STRESSED</div>
+      <div class="zone-title">Southwest Nebraska (Chase / Dundy / Hayes Counties)</div>
+      <div class="zone-desc">The southwestern corner of Nebraska mirrors conditions seen in Kansas and the Texas Panhandle. Water levels have fallen more than 100 feet since the 1950s in Chase County. The Ogallala here is thin and recharges at a glacially slow rate — some estimates suggest natural recharge would take hundreds to thousands of years. No data centers currently, but any expansion into this corridor would be highly concerning.</div>
+      <div class="zone-stat">
+        <span class="zone-stat-num">-100 ft</span>
+        <span class="zone-stat-label">water level decline since 1950 in Chase County</span>
+      </div>
+    </div>
+    <div class="aquifer-zone zone-monitor">
+      <div class="zone-label">ABUNDANT BUT MONITOR</div>
+      <div class="zone-title">West-Central Nebraska (Sandhills region)</div>
+      <div class="zone-desc">The Nebraska Sandhills sit over the deepest and most voluminous section of the entire Ogallala — saturated thickness exceeds 1,000 feet in some areas, and Nebraska holds roughly 70% of all Ogallala water. The Sandhills' sandy soils also allow relatively high recharge rates. This zone is currently healthy, but it directly overlies the aquifer and any industrial-scale pumping would face strong NRD scrutiny and public opposition.</div>
+      <div class="zone-stat">
+        <span class="zone-stat-num">1,000+ ft</span>
+        <span class="zone-stat-label">saturated thickness — world's largest freshwater deposit</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- RISK ASSESSMENT TABLE -->
+  <div class="section-header" style="margin-top:40px;">
+    <h2 style="color:var(--water);">Risk Assessment Matrix</h2>
+    <span class="section-tag water-tag">CURRENT + PROJECTED</span>
+    <div class="divider"></div>
+  </div>
+
+  <div class="risk-meter-wrap">
+    <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--muted); letter-spacing:0.12em; margin-bottom:20px; text-transform:uppercase;">Threat level to Nebraska groundwater from data center expansion</div>
+
+    <div class="risk-row">
+      <div class="risk-label">Direct Ogallala pumping<small>Sarpy / Lancaster / Douglas counties today</small></div>
+      <div class="risk-track"><div class="risk-fill" style="width:8%; background:var(--safe);"></div></div>
+      <div class="risk-badge risk-low">LOW</div>
+    </div>
+    <div class="risk-row">
+      <div class="risk-label">Municipal water supply strain<small>Papillion / Bellevue / Lincoln city water systems</small></div>
+      <div class="risk-track"><div class="risk-fill" style="width:58%; background:var(--warn);"></div></div>
+      <div class="risk-badge risk-med">MODERATE</div>
+    </div>
+    <div class="risk-row">
+      <div class="risk-label">Alluvial aquifer depletion<small>Platte River corridor — current data center zone</small></div>
+      <div class="risk-track"><div class="risk-fill" style="width:42%; background:var(--warn);"></div></div>
+      <div class="risk-badge risk-med">MODERATE</div>
+    </div>
+    <div class="risk-row">
+      <div class="risk-label">Westward expansion (I-80 corridor)<small>If data centers reach York / Grand Island / Kearney</small></div>
+      <div class="risk-track"><div class="risk-fill" style="width:72%; background:var(--danger);"></div></div>
+      <div class="risk-badge risk-high">HIGH</div>
+    </div>
+    <div class="risk-row">
+      <div class="risk-label">SW Nebraska / Chase County expansion<small>If data centers enter direct Ogallala footprint (stressed zone)</small></div>
+      <div class="risk-track"><div class="risk-fill" style="width:92%; background:var(--danger);"></div></div>
+      <div class="risk-badge risk-crit">CRITICAL</div>
+    </div>
+    <div class="risk-row">
+      <div class="risk-label">Transparency & reporting gap<small>No facility-level water disclosure required in Nebraska</small></div>
+      <div class="risk-track"><div class="risk-fill" style="width:85%; background:var(--danger);"></div></div>
+      <div class="risk-badge risk-high">HIGH</div>
+    </div>
+  </div>
+
+  <!-- THE MUNICIPAL WATER CHAIN -->
+  <div style="background:var(--panel); border:1px solid var(--border); border-left:3px solid var(--water); padding:24px; margin-bottom:16px;">
+    <div style="font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--water); letter-spacing:0.12em; margin-bottom:10px;">CRITICAL MECHANISM — THE MUNICIPAL WATER CHAIN</div>
+    <div style="font-size:13px; font-weight:600; color:#fff; margin-bottom:10px;">Why "not directly on the Ogallala" still matters</div>
+    <div style="font-size:12px; color:var(--muted); line-height:1.8;">
+      Data centers in eastern Nebraska draw roughly 95% of their water from municipal water utilities — not their own wells. This sounds reassuring, but it obscures the full chain: <strong style="color:var(--text);">Papillion's municipal water system primarily draws from the alluvial aquifer connected to the Platte River.</strong> That alluvial system is hydrologically connected to the Ogallala. When cities pump more to supply data centers, the drawdown propagates. In Minnesota, data center activity has already been linked to measurable groundwater level drops. In Newton County, Georgia, Meta's facility was permitted to use over 500,000 gallons per day — residents reported lower water pressure and supply issues within a year. Nebraska is earlier in this trajectory, but the underlying mechanism is identical.
+    </div>
+  </div>
+
+  <!-- FOIA / RECORDS REQUEST TARGETS -->
+  <div class="section-header" style="margin-top:40px;">
+    <h2 style="color:var(--water);">Water Research: FOIA & Records Request Targets</h2>
+    <span class="section-tag water-tag">ACTION ITEMS</span>
+    <div class="divider"></div>
+  </div>
+
+  <div class="foia-grid">
+    <div class="foia-card">
+      <div class="foia-title">Papio-Missouri River NRD</div>
+      <div class="foia-target">COVERS SARPY & DOUGLAS COUNTIES</div>
+      <div class="foia-desc">The NRD that covers the data center hotspot. Request all industrial well permits (50+ gpm threshold) issued since 2015 within zip codes 68046, 68138, 68133 (Papillion/Bellevue area). Also request any large-volume water allocation agreements.</div>
+      <div class="foia-ask">REQUEST: "All industrial or commercial groundwater well permits issued in Sarpy and Douglas counties from 2015–present with permitted capacity exceeding 50 gallons per minute, including owner name, permitted volume, and GPS coordinates."</div>
+    </div>
+    <div class="foia-card">
+      <div class="foia-title">Lower Platte South NRD</div>
+      <div class="foia-target">COVERS LANCASTER COUNTY (LINCOLN)</div>
+      <div class="foia-desc">Governs groundwater in the Lincoln area where Google's "Project Agate" is under construction. Request industrial water permits and any variance applications associated with large-scale developments since 2021 in SE Lancaster County.</div>
+      <div class="foia-ask">REQUEST: "All industrial groundwater well permits and surface water diversion permits issued in Lancaster County since 2021 for facilities with projected water consumption exceeding 100,000 gallons per day."</div>
+    </div>
+    <div class="foia-card">
+      <div class="foia-title">City of Papillion Utilities</div>
+      <div class="foia-target">MUNICIPAL WATER RECORDS</div>
+      <div class="foia-desc">City utilities track water sold to industrial customers. Data center companies are the largest industrial water users in the city and should appear prominently. Monthly consumption data by account type is typically public record.</div>
+      <div class="foia-ask">REQUEST: "Annual water consumption records by customer class (industrial/commercial) for 2015–present, including the top 10 water users by annual volume and their addresses."</div>
+    </div>
+    <div class="foia-card">
+      <div class="foia-title">ImagiNE Nebraska Applications</div>
+      <div class="foia-target">NE DEPT. OF ECONOMIC DEVELOPMENT</div>
+      <div class="foia-desc">Companies applying for data center tax incentives must submit detailed project plans including estimated water consumption. These applications may contain facility-level water projections that companies don't voluntarily disclose publicly.</div>
+      <div class="foia-ask">REQUEST: "All ImagiNE Nebraska Act applications from 2019–present for data center or technology infrastructure projects, including projected annual water consumption figures submitted as part of the application."</div>
+    </div>
+    <div class="foia-card">
+      <div class="foia-title">UNL Conservation & Survey Division</div>
+      <div class="foia-target">GROUNDWATER MONITORING DATA</div>
+      <div class="foia-desc">UNL monitors ~5,000 wells across Nebraska annually. Request well-level monitoring data for the Platte River alluvial zone in Sarpy, Douglas, and Lancaster counties — specifically trend data from 2017 to present to see if data center construction correlates with level changes.</div>
+      <div class="foia-ask">REQUEST: "Annual groundwater level measurements from 2015–2024 for monitoring wells within 10 miles of Papillion, NE (zip 68046) and Lincoln, NE (zip 68521), including well IDs, GPS coordinates, and measured depths."</div>
+    </div>
+    <div class="foia-card">
+      <div class="foia-title">Nebraska DWEE (Dept. Water, Energy & Environment)</div>
+      <div class="foia-target">SURFACE WATER PERMITS</div>
+      <div class="foia-desc">Formed July 2025 from the merger of DNR and NDEE. Holds all surface water diversion permit records. Search for industrial water rights granted to shell LLCs near known data center locations. Their online portal allows owner-name searches.</div>
+      <div class="foia-ask">REQUEST: "All surface water diversion permits issued since 2015 to holders in Sarpy, Lancaster, and Douglas counties for industrial or cooling purposes, including permitted volumes and source waterway."</div>
+    </div>
+  </div>
+
+  <!-- WATER MONITORING SOURCES -->
+  <div class="section-header" style="margin-top:40px;">
+    <h2 style="color:var(--water);">Water Research Sources</h2>
+    <span class="section-tag water-tag">MONITOR THESE</span>
+    <div class="divider"></div>
+  </div>
+
+  <div class="sources-grid">
+    <div class="source-card">
+      <div class="priority-tag priority-high">HIGH PRIORITY</div>
+      <div class="source-card-type" style="color:var(--water);">Groundwater Monitoring</div>
+      <h3>UNL Annual Groundwater Report</h3>
+      <p>UNL Conservation & Survey Division publishes annual groundwater level maps for all of Nebraska, including the Ogallala and alluvial aquifers. The 2024 report showed 10–15 ft declines in central NE from drought. Critical baseline data.</p>
+      <a href="https://snr.unl.edu/data/water/groundwater/gwlevelchangemaps.aspx" target="_blank">snr.unl.edu →</a>
+    </div>
+    <div class="source-card">
+      <div class="priority-tag priority-high">HIGH PRIORITY</div>
+      <div class="source-card-type" style="color:var(--water);">Federal Monitoring</div>
+      <h3>USGS High Plains Water Level Study</h3>
+      <p>Congress-mandated biennial report on Ogallala water level changes. The 2023 report covers predevelopment to 2019 across all 8 states. Includes well-level data downloadable by county.</p>
+      <a href="https://ne.water.usgs.gov/projects/HPA/index.html" target="_blank">ne.water.usgs.gov →</a>
+    </div>
+    <div class="source-card">
+      <div class="priority-tag priority-med">MONITOR</div>
+      <div class="source-card-type" style="color:var(--water);">NRD Network</div>
+      <h3>Nebraska NRDs — Water Program</h3>
+      <p>Nebraska's 23 Natural Resources Districts manage all groundwater permitting. The NRD Network site has contact info and links for all districts. Papio-Missouri River NRD and Lower Platte South NRD are the key ones for data center zones.</p>
+      <a href="https://www.nrdnet.org/programs/water" target="_blank">nrdnet.org →</a>
+    </div>
+    <div class="source-card">
+      <div class="priority-tag priority-med">MONITOR</div>
+      <div class="source-card-type" style="color:var(--water);">State Permitting</div>
+      <h3>Nebraska DWEE — Water Permits</h3>
+      <p>The new state agency (formed July 2025 from DNR + NDEE) holds surface water permit records searchable by owner name. Cross-reference LLC names from the land section here.</p>
+      <a href="https://dnr.nebraska.gov/water-admin" target="_blank">dnr.nebraska.gov →</a>
+    </div>
+    <div class="source-card">
+      <div class="priority-tag priority-med">MONITOR</div>
+      <div class="source-card-type" style="color:var(--water);">Industry Research</div>
+      <h3>Lawrence Berkeley Lab — Data Center Reports</h3>
+      <p>LBL publishes the authoritative federal report on US data center energy and water consumption. The 2024 report projected data center water use could double or quadruple by 2028 due to AI demand.</p>
+      <a href="https://eta-publications.lbl.gov/sites/default/files/2024-12/lbnl-2024-united-states-data-center-energy-usage-report.pdf" target="_blank">LBL 2024 Report PDF →</a>
+    </div>
+    <div class="source-card">
+      <div class="priority-tag priority-med">MONITOR</div>
+      <div class="source-card-type" style="color:var(--water);">Journalism</div>
+      <h3>Nebraska Public Media / Harvest Public Media</h3>
+      <p>Published a detailed July 2025 investigation on data center water and energy use across the Midwest and Great Plains. Covers Nebraska specifically. Harvest Public Media covers the entire agricultural heartland and frequently reports on the Ogallala.</p>
+      <a href="https://nebraskapublicmedia.org/en/news/news-articles/water-and-energy-use-is-growing-as-data-centers-are-built-across-the-midwest-and-great-plains/" target="_blank">nebraskapublicmedia.org →</a>
+    </div>
+  </div>
+
+  <footer>
+    <span>NEBRASKA DATA CENTER LAND + WATER RESEARCH &nbsp;|&nbsp; COMPILED FEB 2026</span>
+    <span>SOURCES: SARPY / LANCASTER / DOUGLAS COUNTY ASSESSORS · NE DOR · UNL CSD · USGS · FLATWATER FREE PRESS · LBL</span>
+  </footer>
+
+</div>
+</body>
+</html>
