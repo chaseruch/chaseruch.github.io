@@ -231,8 +231,6 @@
   .md-excerpt{font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:14px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
   .md-footer{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border);padding-top:10px;margin-top:auto}
   .md-date{font-family:'DM Mono',monospace;font-size:10px;color:var(--text2);letter-spacing:1px}
-  .md-edit-btn{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;padding:4px 10px;border-radius:5px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;transition:all .15s}
-  .md-edit-btn:hover{border-color:var(--accent);color:var(--accent)}
 
   /* article read modal */
   .art-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);z-index:1100;place-items:center}
@@ -258,12 +256,7 @@
   .art-modal-content.placeholder-content{color:var(--text2);font-family:'DM Mono',monospace;font-size:12px;letter-spacing:1px;text-align:center;padding:40px 0}
   .art-close{background:none;border:1px solid var(--border);color:var(--text2);border-radius:6px;padding:6px 13px;cursor:pointer;font-size:16px;flex-shrink:0;transition:all .15s}
   .art-close:hover{border-color:var(--accent2);color:var(--accent2)}
-  .art-edit-bar{display:flex;gap:10px;align-items:center;margin-top:20px;flex-wrap:wrap}
-  .art-field{width:100%;background:rgba(0,0,0,.3);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:10px 14px;font-family:'DM Mono',monospace;font-size:12px;outline:none;transition:border-color .2s;resize:vertical}
-  .art-field:focus{border-color:var(--accent)}
-  .art-field-title{font-size:16px;font-family:'Bebas Neue',sans-serif;letter-spacing:2px;resize:none;height:48px}
   .art-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text2);margin-bottom:5px;display:block}
-  .art-field-group{margin-bottom:14px}
   /* ── SCROLLBAR ── */
   ::-webkit-scrollbar{width:6px;height:6px}
   ::-webkit-scrollbar-track{background:var(--pitch)}
@@ -644,29 +637,8 @@ Seattle, Colorado - TBD</textarea>
       <!-- READ VIEW -->
       <div id="art-read-view">
         <div class="art-modal-content" id="art-view-content"></div>
-        <div style="margin-top:24px;display:flex;gap:10px">
-          <button class="btn btn-ghost" onclick="switchToEdit()" style="font-size:11px">✏ EDIT REPORT</button>
-        </div>
+
       </div>
-      <!-- EDIT VIEW -->
-      <div id="art-edit-view" style="display:none">
-        <div class="art-field-group">
-          <label class="art-label">Article Title</label>
-          <textarea class="art-field art-field-title" id="art-edit-title" placeholder="e.g. Messi Masterclass Lifts Miami to Top of East"></textarea>
-        </div>
-        <div class="art-field-group">
-          <label class="art-label">Date Published</label>
-          <input class="art-field" id="art-edit-date" type="date" style="height:40px;resize:none">
-        </div>
-        <div class="art-field-group">
-          <label class="art-label">Article Body</label>
-          <textarea class="art-field" id="art-edit-body" placeholder="Write your matchday report here..." style="min-height:280px"></textarea>
-        </div>
-        <div class="art-edit-bar">
-          <button class="btn btn-primary" onclick="saveArticle()" style="font-size:11px">💾 SAVE REPORT</button>
-          <button class="btn btn-ghost" onclick="switchToRead()" style="font-size:11px">CANCEL</button>
-          <button class="btn btn-danger" onclick="clearArticle()" style="font-size:11px;margin-left:auto">✕ CLEAR</button>
-        </div>
       </div>
     </div>
   </div>
@@ -1330,13 +1302,12 @@ function renderMatchday() {
         ${hasContent ? `<div class="md-excerpt">${excerpt}</div>` : '<div class="md-excerpt" style="font-style:italic;opacity:.5">Coming soon.</div>'}
         <div class="md-footer">
           <span class="md-date">${hasContent && art.date ? art.date : '— / — / ——'}</span>
-          <button class="md-edit-btn" onclick="event.stopPropagation();openArt(${md},true)">✏ ${hasContent ? 'EDIT' : 'WRITE'}</button>
         </div>
       </div>`;
   }).join('');
 }
 
-function openArt(md, startInEdit = false) {
+function openArt(md) {
   artCurrentMD = md;
   const art = articles[String(md)] || {};
   const hasContent = art.title && art.body;
@@ -1352,59 +1323,18 @@ function openArt(md, startInEdit = false) {
     contentEl.className = 'art-modal-content';
     setTimeout(function() { renderEmbeds(parsed.embedList, contentEl); }, 50);
   } else {
-    contentEl.innerHTML = '<div style="text-align:center;padding:40px 0;font-family:\'DM Mono\',monospace;font-size:12px;color:var(--text2);letter-spacing:1px">✍  No report written yet for this matchday.<br><br>Click \"EDIT REPORT\" below to write one.</div>';
+    contentEl.innerHTML = '<div style="text-align:center;padding:40px 0;font-family:\'DM Mono\',monospace;font-size:12px;color:var(--text2);letter-spacing:1px">No report yet for this matchday.<br><br>Check back after matchday.</div>';
     contentEl.className = 'art-modal-content';
   }
 
-  if (startInEdit || !hasContent) {
-    document.getElementById('art-edit-title').value = art.title || '';
-    document.getElementById('art-edit-date').value  = art.date  || '';
-    document.getElementById('art-edit-body').value  = art.body  || '';
-    document.getElementById('art-read-view').style.display = 'none';
-    document.getElementById('art-edit-view').style.display = '';
-  } else {
-    document.getElementById('art-read-view').style.display = '';
-    document.getElementById('art-edit-view').style.display = 'none';
-  }
+  document.getElementById('art-read-view').style.display = '';
 
   document.getElementById('art-backdrop').classList.add('open');
 }
 
-function switchToEdit() {
-  const art = articles[artCurrentMD] || {};
-  document.getElementById('art-edit-title').value = art.title || '';
-  document.getElementById('art-edit-date').value  = art.date  || new Date().toISOString().slice(0,10);
-  document.getElementById('art-edit-body').value  = art.body  || '';
-  document.getElementById('art-read-view').style.display = 'none';
-  document.getElementById('art-edit-view').style.display = '';
-}
 
-function switchToRead() {
-  document.getElementById('art-read-view').style.display = '';
-  document.getElementById('art-edit-view').style.display = 'none';
-}
 
-function saveArticle() {
-  const title = document.getElementById('art-edit-title').value.trim();
-  const date  = document.getElementById('art-edit-date').value;
-  const body  = document.getElementById('art-edit-body').value.trim();
-  if (!title && !body) { closeArt(); return; }
-  articles[String(artCurrentMD)] = { title, date, body };
-  saveArticles();
-  renderMatchday();
-  openArt(artCurrentMD, false);
-  // toast
-  const t = document.getElementById('toast');
-  if (t) { t.textContent = `Matchday ${artCurrentMD} report saved ✓`; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 2400); }
-}
 
-function clearArticle() {
-  if (!confirm(`Clear the Matchday ${artCurrentMD} report?`)) return;
-  delete articles[String(artCurrentMD)];
-  saveArticles();
-  renderMatchday();
-  openArt(artCurrentMD, true);
-}
 
 function closeArt() { document.getElementById('art-backdrop').classList.remove('open'); artCurrentMD = null; }
 function closeArtIfBg(e) { if (e.target === document.getElementById('art-backdrop')) closeArt(); }
