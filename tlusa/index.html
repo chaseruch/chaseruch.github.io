@@ -397,14 +397,6 @@ Seattle, Colorado - TBD</textarea>
 
 <div class="app">
 
-  <!-- Action bar -->
-  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:22px;">
-    <button class="btn-add" onclick="openModal()"><span style="font-size:18px">＋</span> ADD PLAYER</button>
-    <button class="btn btn-ghost" onclick="exportCSV()" style="font-size:11px">⬇ EXPORT CSV</button>
-    <button class="btn btn-ghost" onclick="document.getElementById('importFile').click()" style="font-size:11px">⬆ IMPORT CSV</button>
-    <input type="file" id="importFile" accept=".csv" style="display:none" onchange="importCSV(event)">
-    <button class="btn btn-danger" onclick="clearAll()" style="font-size:11px;margin-left:auto">✕ CLEAR ALL</button>
-  </div>
 
   <!-- Tabs -->
   <div class="tabs">
@@ -421,7 +413,7 @@ Seattle, Colorado - TBD</textarea>
     <div id="ov-empty" class="empty-state">
       <div class="empty-icon">⚽</div>
       <div class="empty-title">No Players Yet</div>
-      <div class="empty-sub">Hit "ADD PLAYER" above to start building your 2026 roster</div>
+      <div class="empty-sub">Import a CSV to start building your 2026 roster</div>
     </div>
     <div id="ov-content" style="display:none">
       <div class="grid3" id="ov-heroes"></div>
@@ -881,7 +873,7 @@ function renderRoster(){
   }).join('');
 
   document.getElementById('rs-tbody').innerHTML=!data.length
-    ?`<tr><td colspan="13" style="text-align:center;padding:40px;color:var(--text2);font-family:'DM Mono',monospace;font-size:12px">No players yet — click ADD PLAYER above</td></tr>`
+    ?`<tr><td colspan="13" style="text-align:center;padding:40px;color:var(--text2);font-family:'DM Mono',monospace;font-size:12px">No players yet — import a CSV to get started</td></tr>`
     :data.map((p,i)=>`<tr>
       <td style="color:var(--text2);font-family:'DM Mono',monospace">${i+1}</td>
       <td style="font-weight:500">${p.name}</td>
@@ -1038,38 +1030,7 @@ function switchTab(id,btn){ if(id==='matchday') setTimeout(renderMatchday,0);
 }
 
 // ════════════════════════ CSV EXPORT / IMPORT ════════════════════════
-function exportCSV(){
-  if(!players.length){alert('No players to export');return;}
-  const out=players.filter(p=>p.pos!=='GK'), gks=players.filter(p=>p.pos==='GK');
-  const outC=['name','squad','pos','nation','age','nineties','Attacking_Efficiency','Defensive_Efficiency','Goals_p90','xG_p90','Assists_p90','xAG_p90','SoT_p90','Tkl_Won_p90','Interceptions_p90','Pressures_p90'];
-  const gkC =['name','squad','pos','nation','age','nineties','GK_Efficiency','GA_p90','PSxG-GA_p90','Save%','CS%','Launch%','Cmp%','Stp%'];
-  const toCSV=(rows,cols)=>cols.join(',')+'\n'+rows.map(p=>cols.map(c=>{const v=p[c]??'';return typeof v==='string'&&v.includes(',')?`"${v}"`:v;}).join(',')).join('\n');
-  const dl=(c,f)=>{const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(c);a.download=f;a.click();};
-  if(out.length) dl(toCSV(out,outC),'mls_outfield_efficiency.csv');
-  if(gks.length) dl(toCSV(gks,gkC),'mls_gk_efficiency.csv');
-}
 
-function importCSV(event){
-  const file=event.target.files[0]; if(!file) return;
-  const reader=new FileReader();
-  reader.onload=e=>{
-    const lines=e.target.result.trim().split('\n');
-    const hdrs=lines[0].split(',').map(h=>h.replace(/^"|"$/g,'').trim());
-    const rows=lines.slice(1).map(line=>{
-      const vals=line.split(',').map(v=>v.replace(/^"|"$/g,'').trim());
-      const obj={id:Date.now().toString()+Math.random()};
-      hdrs.forEach((h,i)=>{obj[h]=isNaN(vals[i])||vals[i]===''?vals[i]:parseFloat(vals[i]);});
-      if(!obj.name&&obj.Player) obj.name=obj.Player;
-      if(!obj.squad&&obj.Squad) obj.squad=obj.Squad;
-      if(!obj.pos&&obj.Pos) obj.pos=obj.Pos;
-      if(!obj.nineties&&obj['90s']) obj.nineties=obj['90s'];
-      return obj;
-    }).filter(o=>o.name);
-    players.push(...rows); computeRatings(players); refreshAll();
-    alert(`Imported ${rows.length} players from ${file.name}`);
-  };
-  reader.readAsText(file); event.target.value='';
-}
 
 
 // ════════════════════════ MATCHDAY ARTICLES ════════════════════════
