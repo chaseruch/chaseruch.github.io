@@ -795,7 +795,7 @@ function rPill(v,t='g'){const n=+v,cls=n>=70?'r-hi':n>=40?'r-md':'r-lo';
 
 // ════════════════════════ REFRESH ════════════════════════
 function refreshAll(){
-  document.getElementById('player-count-badge').textContent=`${players.length} player${players.length!==1?'s':''} entered`;
+  const _b=document.getElementById('player-count-badge'); if(_b) _b.textContent=`${players.length} player${players.length!==1?'s':''} entered`;
   const out=players.filter(p=>p.pos!=='GK');
   ['sp-sel','cmp-a','cmp-b'].forEach(id=>{
     const sel=document.getElementById(id),cur=sel.value;
