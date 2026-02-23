@@ -89,6 +89,16 @@
   .card-title.yellow::before{background:var(--yellow)}
   .card-title.blue::before{background:var(--blue)}
 
+
+  /* ── PLAYER SEARCH ── */
+  .player-search-wrap{position:relative;min-width:220px}
+  .player-search-input{width:100%;box-sizing:border-box;background:var(--surface);border:1px solid rgba(57,255,110,0.2);color:var(--text);font-family:'DM Mono',monospace;font-size:12px;padding:8px 12px;border-radius:6px;outline:none;letter-spacing:1px}
+  .player-search-input:focus{border-color:var(--accent)}
+  .player-search-dropdown{position:absolute;top:100%;left:0;right:0;background:#0d2e1a;border:1px solid rgba(57,255,110,0.2);border-top:none;border-radius:0 0 6px 6px;max-height:240px;overflow-y:auto;z-index:500;display:none}
+  .player-search-dropdown.open{display:block}
+  .player-search-option{padding:8px 12px;font-family:'DM Mono',monospace;font-size:11px;color:var(--text2);cursor:pointer;letter-spacing:0.5px;border-bottom:1px solid rgba(57,255,110,0.05)}
+  .player-search-option:hover,.player-search-option.active{background:rgba(57,255,110,0.1);color:var(--text)}
+  .player-search-option span{color:var(--text2);font-size:10px;margin-left:6px}
   /* ── BADGES ── */
   .pos-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px}
   .pos-FW{background:rgba(255,62,62,.18);color:var(--red);border:1px solid rgba(255,62,62,.3)}
@@ -465,7 +475,12 @@ Seattle, Colorado - TBD</textarea>
     <div style="display:flex;gap:14px;align-items:center;margin-bottom:22px;flex-wrap:wrap">
       <div class="ctrl-group">
         <span class="ctrl-label">Select Player</span>
-        <select id="sp-sel" onchange="renderSpotlight()" style="min-width:220px"></select>
+        <div class="player-search-wrap" id="sp-search-wrap">
+          <input type="text" class="player-search-input" id="sp-search" placeholder="Search player..." autocomplete="off"
+            oninput="filterPlayerSearch('sp')" onfocus="openPlayerSearch('sp')" onblur="blurPlayerSearch('sp')" onkeydown="keyPlayerSearch(event,'sp')">
+          <div class="player-search-dropdown" id="sp-dropdown"></div>
+          <input type="hidden" id="sp-sel">
+        </div>
       </div>
     </div>
     <div id="sp-empty" class="empty-state" style="display:none"><div class="empty-icon">👤</div><div class="empty-title">No Players Yet</div></div>
@@ -505,9 +520,21 @@ Seattle, Colorado - TBD</textarea>
   <!-- COMPARE -->
   <div id="tab-compare" class="tab-panel">
     <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:18px;align-items:center;margin-bottom:18px">
-      <div class="ctrl-group" style="width:100%"><span class="ctrl-label">Player A</span><select id="cmp-a" onchange="renderCompare()" style="width:100%"></select></div>
+      <div class="ctrl-group" style="width:100%"><span class="ctrl-label">Player A</span>
+        <div class="player-search-wrap" style="min-width:unset;width:100%">
+          <input type="text" class="player-search-input" id="cmp-a-search" placeholder="Search player..." autocomplete="off"
+            oninput="filterPlayerSearch('cmp-a')" onfocus="openPlayerSearch('cmp-a')" onblur="blurPlayerSearch('cmp-a')" onkeydown="keyPlayerSearch(event,'cmp-a')" style="width:100%">
+          <div class="player-search-dropdown" id="cmp-a-dropdown"></div>
+          <input type="hidden" id="cmp-a">
+        </div></div>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:30px;color:var(--yellow);text-align:center">VS</div>
-      <div class="ctrl-group" style="width:100%"><span class="ctrl-label">Player B</span><select id="cmp-b" onchange="renderCompare()" style="width:100%"></select></div>
+      <div class="ctrl-group" style="width:100%"><span class="ctrl-label">Player B</span>
+        <div class="player-search-wrap" style="min-width:unset;width:100%">
+          <input type="text" class="player-search-input" id="cmp-b-search" placeholder="Search player..." autocomplete="off"
+            oninput="filterPlayerSearch('cmp-b')" onfocus="openPlayerSearch('cmp-b')" onblur="blurPlayerSearch('cmp-b')" onkeydown="keyPlayerSearch(event,'cmp-b')" style="width:100%">
+          <div class="player-search-dropdown" id="cmp-b-dropdown"></div>
+          <input type="hidden" id="cmp-b">
+        </div></div>
     </div>
     <div class="grid2" style="margin-bottom:18px">
       <div class="card"><div class="card-title">Player A</div><div id="cmp-name-a" class="player-name-big">—</div><div id="cmp-meta-a" class="player-meta-sm" style="margin-bottom:14px">—</div><div id="cmp-stats-a"></div></div>
@@ -797,12 +824,10 @@ function rPill(v,t='g'){const n=+v,cls=n>=70?'r-hi':n>=40?'r-md':'r-lo';
 function refreshAll(){
   const _b=document.getElementById('player-count-badge'); if(_b) _b.textContent=`${players.length} player${players.length!==1?'s':''} entered`;
   const out=players.filter(p=>p.pos!=='GK');
-  ['sp-sel','cmp-a','cmp-b'].forEach(id=>{
-    const sel=document.getElementById(id),cur=sel.value;
-    sel.innerHTML=out.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
-    if([...sel.options].some(o=>o.value===cur)) sel.value=cur;
-  });
-  if(document.getElementById('cmp-b').options.length>1) document.getElementById('cmp-b').selectedIndex=1;
+  // search inputs — pre-select first player if none selected
+  if(!document.getElementById('sp-sel').value && out.length) { selectPlayer('sp', out[0].id, out[0].name); }
+  if(!document.getElementById('cmp-a').value && out.length) { selectPlayer('cmp-a', out[0].id, out[0].name); }
+  if(!document.getElementById('cmp-b').value && out.length>1) { selectPlayer('cmp-b', out[1].id, out[1].name); }
   const teams=['ALL',...new Set(players.map(p=>p.squad))].sort();
   const tSel=document.getElementById('rs-team'),curT=tSel.value;
   tSel.innerHTML=teams.map(t=>`<option value="${t}">${t==='ALL'?'All Teams':t}</option>`).join('');
@@ -1316,6 +1341,71 @@ function closeArtIfBg(e) { if (e.target === document.getElementById('art-backdro
     localStorage.setItem(ART_KEY, JSON.stringify(articles));
   } catch(e) { console.warn('Article store load error:', e); }
 })();
+
+
+// ════════════════════════ PLAYER SEARCH ════════════════════════
+var _searchIdx = {}; // key -> active highlight index
+
+function buildSearchList(key) {
+  const out = players.filter(p => p.pos !== 'GK');
+  return out.map(p => ({ id: p.id, name: p.name, squad: p.squad, pos: p.pos }));
+}
+
+function filterPlayerSearch(key) {
+  const input = document.getElementById(key === 'sp' ? 'sp-search' : key + '-search');
+  const dropdown = document.getElementById(key === 'sp' ? 'sp-dropdown' : key + '-dropdown');
+  const q = input.value.trim().toLowerCase();
+  const list = buildSearchList(key);
+  const matches = q ? list.filter(p => p.name.toLowerCase().includes(q) || p.squad.toLowerCase().includes(q)) : list.slice(0, 50);
+  _searchIdx[key] = -1;
+  dropdown.innerHTML = matches.slice(0, 50).map((p, i) =>
+    `<div class="player-search-option" data-id="${p.id}" data-name="${p.name}" onmousedown="selectPlayer('${key}','${p.id}','${p.name.replace(/'/g,"\\'")}')">
+      ${p.name}<span>${p.squad} · ${p.pos}</span>
+    </div>`
+  ).join('') || '<div class="player-search-option" style="color:var(--text2)">No results</div>';
+  dropdown.classList.add('open');
+}
+
+function openPlayerSearch(key) {
+  filterPlayerSearch(key);
+}
+
+function blurPlayerSearch(key) {
+  setTimeout(() => {
+    const dropdown = document.getElementById(key === 'sp' ? 'sp-dropdown' : key + '-dropdown');
+    dropdown.classList.remove('open');
+  }, 200);
+}
+
+function keyPlayerSearch(e, key) {
+  const dropdown = document.getElementById(key === 'sp' ? 'sp-dropdown' : key + '-dropdown');
+  const opts = dropdown.querySelectorAll('.player-search-option[data-id]');
+  if (!opts.length) return;
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    _searchIdx[key] = Math.min((_searchIdx[key] || -1) + 1, opts.length - 1);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    _searchIdx[key] = Math.max((_searchIdx[key] || 0) - 1, 0);
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    const idx = _searchIdx[key] >= 0 ? _searchIdx[key] : 0;
+    if (opts[idx]) opts[idx].dispatchEvent(new Event('mousedown'));
+    return;
+  } else { return; }
+  opts.forEach((o, i) => o.classList.toggle('active', i === _searchIdx[key]));
+  if (opts[_searchIdx[key]]) opts[_searchIdx[key]].scrollIntoView({ block: 'nearest' });
+}
+
+function selectPlayer(key, id, name) {
+  document.getElementById(key === 'sp' ? 'sp-sel' : key).value = id;
+  const input = document.getElementById(key === 'sp' ? 'sp-search' : key + '-search');
+  if (input) input.value = name;
+  const dropdown = document.getElementById(key === 'sp' ? 'sp-dropdown' : key + '-dropdown');
+  if (dropdown) dropdown.classList.remove('open');
+  if (key === 'sp') renderSpotlight();
+  else renderCompare();
+}
 
 toggleGKFields();
 renderMatchday();
