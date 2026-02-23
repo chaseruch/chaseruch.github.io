@@ -302,14 +302,68 @@ def main():
     print("\n[8/8] Fetching team data...")
     try:
         team_xg = asa.get_team_xgoals(leagues="mls", season_name=SEASON, stage_name="Regular Season")
-        print(f"  team_xgoals columns: {list(team_xg.columns)}")
-        print(f"  {len(team_xg)} teams")
+        print(f"  {len(team_xg)} teams (season totals)")
 
         game_xg = asa.get_game_xgoals(leagues="mls", season_name=SEASON, stage_name="Regular Season")
-        print(f"  game_xgoals columns: {list(game_xg.columns)}")
-        print(f"  {len(game_xg)} games")
+        print(f"  {len(game_xg)} games (trajectory)")
+
+        # ── Season totals ─────────────────────────────────────
+        team_xg["Squad"] = team_xg["team_id"].map(team_map).fillna(team_xg["team_id"])
+        team_xg = team_xg.rename(columns={
+            "count_games":                            "GP",
+            "goals_for":                              "GF",
+            "goals_against":                          "GA",
+            "goal_difference":                        "GD",
+            "xgoals_for":                             "xGF",
+            "xgoals_against":                         "xGA",
+            "xgoal_difference":                       "xGD",
+            "goal_difference_minus_xgoal_difference": "GD_minus_xGD",
+            "shots_for":                              "SF",
+            "shots_against":                          "SA",
+            "points":                                 "Pts",
+            "xpoints":                                "xPts",
+        })
+
+        team_xg["Team_Efficiency"] = (
+            nm(safe(team_xg, "xGF"))          * 0.30 +
+            nm(safe(team_xg, "xGA"), True)    * 0.30 +
+            nm(safe(team_xg, "xGD"))          * 0.20 +
+            nm(safe(team_xg, "xPts"))         * 0.20
+        ).round(2)
+
+        TEAM_COLS = ["team_id", "Squad", "GP", "GF", "GA", "GD",
+                     "xGF", "xGA", "xGD", "GD_minus_xGD",
+                     "SF", "SA", "Pts", "xPts", "Team_Efficiency"]
+        team_out = team_xg[[c for c in TEAM_COLS if c in team_xg.columns]]
+        team_out = team_out.sort_values("Team_Efficiency", ascending=False).reset_index(drop=True)
+        team_path = OUT_DIR / "mls_team_stats.csv"
+        team_out.to_csv(team_path, index=False)
+        print(f"  Saved {len(team_out)} teams → {team_path.name}")
+
+        # ── Game trajectory ───────────────────────────────────
+        game_xg["date"] = pd.to_datetime(game_xg["date_time_utc"]).dt.strftime("%Y-%m-%d")
+        game_xg["home_team"] = game_xg["home_team_id"].map(team_map).fillna(game_xg["home_team_id"])
+        game_xg["away_team"] = game_xg["away_team_id"].map(team_map).fillna(game_xg["away_team_id"])
+
+        home_rows = game_xg[["game_id","date","home_team","home_goals","home_team_xgoals","home_xpoints"]].copy()
+        home_rows.columns = ["game_id","date","team","goals","xgoals","xpoints"]
+        away_rows = game_xg[["game_id","date","away_team","away_goals","away_team_xgoals","away_xpoints"]].copy()
+        away_rows.columns = ["game_id","date","team","goals","xgoals","xpoints"]
+        all_games = pd.concat([home_rows, away_rows], ignore_index=True)
+        all_games = all_games.sort_values(["team","date"]).reset_index(drop=True)
+        all_games["cum_goals"]   = all_games.groupby("team")["goals"].cumsum()
+        all_games["cum_xgoals"]  = all_games.groupby("team")["xgoals"].cumsum()
+        all_games["cum_xpoints"] = all_games.groupby("team")["xpoints"].cumsum()
+        all_games["matchday"]    = all_games.groupby("team").cumcount() + 1
+
+        traj_path = OUT_DIR / "mls_team_trajectory.csv"
+        all_games.to_csv(traj_path, index=False)
+        print(f"  Saved {len(all_games)} game rows → {traj_path.name}")
+
     except Exception as e:
+        import traceback
         print(f"  WARNING: {e}")
+        traceback.print_exc()
 
     # ── Preview ──────────────────────────────────────────────
     print(f"\n{div}")
