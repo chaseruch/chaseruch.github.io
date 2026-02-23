@@ -2119,3 +2119,29 @@ refreshAll();
 })();
 </script>
 <!-- TLUSA-PLAYERS-END -->
+
+<!-- TLUSA-TEAMS-START -->
+<script>
+(function() {
+  var _teams = [];
+  var _traj  = {};
+
+  function tryLoadTeams() {
+    if (typeof teamsData === 'undefined' || typeof trajData === 'undefined') {
+      setTimeout(tryLoadTeams, 100);
+      return;
+    }
+    teamsData = _teams;
+    trajData  = _traj;
+    if (typeof renderTeams === 'function') renderTeams();
+    console.log('[TLUSA] Loaded ' + _teams.length + ' teams.');
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() { setTimeout(tryLoadTeams, 100); });
+  } else {
+    setTimeout(tryLoadTeams, 100);
+  }
+})();
+</script>
+<!-- TLUSA-TEAMS-END -->
