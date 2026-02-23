@@ -14,10 +14,12 @@ from datetime import date
 from pathlib import Path
 import pandas as pd
 
-DIR     = Path(__file__).parent
-HTML    = DIR / "index.html"
-OUT_CSV = DIR / "mls_outfield_efficiency.csv"
-GK_CSV  = DIR / "mls_gk_efficiency.csv"
+DIR      = Path(__file__).parent
+HTML     = DIR / "index.html"
+OUT_CSV  = DIR / "mls_outfield_efficiency.csv"
+GK_CSV   = DIR / "mls_gk_efficiency.csv"
+TEAM_CSV = DIR / "mls_team_stats.csv"
+TRAJ_CSV = DIR / "mls_team_trajectory.csv"
 
 
 def fmt_salary(v):
@@ -133,6 +135,51 @@ def main():
     all_players = outfield + gks
     print(f"  {len(outfield)} outfield  |  {len(gks)} GKs  |  {len(all_players)} total")
 
+    # Load team data
+    teams_data = []
+    if TEAM_CSV.exists():
+        tdf = pd.read_csv(TEAM_CSV)
+        for _, row in tdf.iterrows():
+            def tg(col, default=0):
+                v = row.get(col, default)
+                try:
+                    if pd.isna(v): return default
+                except: pass
+                return v
+            teams_data.append({
+                "team_id":         str(tg("team_id","")),
+                "name":            str(tg("Squad","")),
+                "gp":              int(tg("GP",0)),
+                "gf":              int(tg("GF",0)),
+                "ga":              int(tg("GA",0)),
+                "gd":              int(tg("GD",0)),
+                "xgf":             round(float(tg("xGF",0)),2),
+                "xga":             round(float(tg("xGA",0)),2),
+                "xgd":             round(float(tg("xGD",0)),2),
+                "gd_minus_xgd":    round(float(tg("GD_minus_xGD",0)),2),
+                "sf":              int(tg("SF",0)),
+                "sa":              int(tg("SA",0)),
+                "pts":             int(tg("Pts",0)),
+                "xpts":            round(float(tg("xPts",0)),2),
+                "efficiency":      round(float(tg("Team_Efficiency",0)),2),
+            })
+        print(f"  {len(teams_data)} teams loaded")
+
+    # Load trajectory data — group by team as dict of arrays
+    traj_data = {}
+    if TRAJ_CSV.exists():
+        trdf = pd.read_csv(TRAJ_CSV)
+        for team, grp in trdf.groupby("team"):
+            grp = grp.sort_values("matchday")
+            traj_data[team] = {
+                "dates":      grp["date"].tolist(),
+                "matchdays":  grp["matchday"].tolist(),
+                "cum_goals":  grp["cum_goals"].tolist(),
+                "cum_xgoals": grp["cum_xgoals"].round(2).tolist(),
+                "cum_xpts":   grp["cum_xpoints"].round(2).tolist(),
+            }
+        print(f"  {len(traj_data)} teams with trajectory data")
+
     if not all_players:
         print("\n  ERROR: No players loaded — aborting to avoid wiping index.html")
         return
@@ -145,11 +192,15 @@ def main():
     html = re.sub(r'STATS AS OF \d+/\d+/\d+', f'STATS AS OF {today}', html)
     print(f"  Date updated to {today}")
 
-    # Strip previous injection
+    # Strip previous injections
     html = re.sub(r'<!-- TLUSA-PLAYERS-START -->.*?<!-- TLUSA-PLAYERS-END -->', '',
+                  html, flags=re.DOTALL)
+    html = re.sub(r'<!-- TLUSA-TEAMS-START -->.*?<!-- TLUSA-TEAMS-END -->', '',
                   html, flags=re.DOTALL).rstrip()
 
     players_json = json.dumps(all_players, ensure_ascii=False)
+    teams_json   = json.dumps(teams_data, ensure_ascii=False)
+    traj_json    = json.dumps(traj_data, ensure_ascii=False)
 
     block = f"""
 
