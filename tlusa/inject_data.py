@@ -1,194 +1,1783 @@
-"""
-Touchline USA — Data Injector
-==============================
-Reads mls_outfield_efficiency.csv and mls_gk_efficiency.csv
-and injects player data into index.html.
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Touchline USA by Chase Ruch</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,400&family=Barlow:wght@300;400;500;600&display=swap');
 
-Run after scraping:
-  python3 inject_data.py
-"""
+  :root {
+    --pitch:  #0d1117;
+    --pitch2: #161b22;
+    --line:   #21262d;
+    --accent: #00d4ff;
+    --red:    #ff4d6a;
+    --yellow: #f5a623;
+    --blue:   #4f8ef7;
+    --text:   #f0f4f8;
+    --text2:  #7d8fa3;
+    --card:   rgba(22,27,34,0.90);
+    --border: rgba(0,212,255,0.15);
+    --glow:   0 0 24px rgba(0,212,255,0.2);
+  }
 
-import json
-import re
-from datetime import date
-from pathlib import Path
-import pandas as pd
+  *{box-sizing:border-box;margin:0;padding:0}
 
-DIR     = Path(__file__).parent
-HTML    = DIR / "index.html"
-OUT_CSV = DIR / "mls_outfield_efficiency.csv"
-GK_CSV  = DIR / "mls_gk_efficiency.csv"
+  body{
+    background:var(--pitch);color:var(--text);
+    font-family:'Barlow',sans-serif;min-height:100vh;overflow-x:hidden;
+  }
+  body::before{
+    content:'';position:fixed;inset:0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.025) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(0,212,255,0.025) 1px,transparent 1px);
+    background-size:40px 40px;pointer-events:none;z-index:0;
+  }
 
+  /* ── HEADER ── */
+  header{
+    position:relative;z-index:10;padding:24px 40px 18px;
+    border-bottom:1px solid var(--border);
+    display:flex;align-items:flex-end;justify-content:space-between;gap:20px;
+    background:linear-gradient(180deg,rgba(13,17,23,0.98) 0%,transparent 100%);
+  }
+  .logo{display:flex;align-items:flex-end;gap:14px}
+  .logo-icon{
+    width:52px;height:52px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  }
+  .logo-icon img{width:52px;height:52px;object-fit:contain;}
+  h1{font-family:'Exo 2',sans-serif;font-size:clamp(24px,4vw,48px);letter-spacing:4px;line-height:1;font-weight:900;text-transform:uppercase}
+  h1 span{color:var(--accent)}
+  .hdr-meta{font-family:'Exo 2',sans-serif;font-size:11px;color:var(--text2);letter-spacing:2px;text-align:right}
+  .live-dot{display:inline-block;width:7px;height:7px;background:var(--accent);border-radius:50%;margin-right:6px;animation:pulse 1.8s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
 
-def fmt_salary(v):
-    """Format salary as $1.23M or $450K"""
-    if not v or v == 0:
-        return None
-    v = float(v)
-    if v >= 1_000_000:
-        return f"${v/1_000_000:.2f}M"
-    elif v >= 1_000:
-        return f"${v/1_000:.0f}K"
-    return f"${v:.0f}"
+  /* ── LAYOUT ── */
+  .app{position:relative;z-index:5;padding:24px 40px 60px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-bottom:18px}
 
+  /* ── TABS ── */
+  .tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:24px}
+  .tab{
+    padding:9px 22px;font-family:'Exo 2',sans-serif;font-size:11px;
+    letter-spacing:2px;text-transform:uppercase;border:none;background:transparent;
+    color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;
+    transition:all .2s;margin-bottom:-1px;
+  }
+  .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+  .tab:hover:not(.active){color:var(--text)}
+  .tab-panel{display:none}.tab-panel.active{display:block}
 
-def csv_to_players(path, is_gk=False):
-    if not path.exists():
-        print(f"  WARNING: {path.name} not found")
-        return []
-    df = pd.read_csv(path)
-    players = []
-    for _, row in df.iterrows():
-        def g(col, default=0):
-            v = row.get(col, default)
-            try:
-                if pd.isna(v): return default
-            except: pass
-            return v
-
-        p = {
-            "id":       f"{'gk' if is_gk else 'of'}_{len(players)}",
-            "name":     str(g("Player", "")),
-            "squad":    str(g("Squad", "")),
-            "pos":      str(g("Pos", "GK" if is_gk else "")),
-            "age":      str(g("Age", "")),
-            "nation":   str(g("Nation", "")),
-            "nineties": float(g("90s", 0) or 0),
-            "isGK":     is_gk,
-            # Salary
-            "base_salary":      fmt_salary(g("Base_Salary", 0)),
-            "guaranteed_comp":  fmt_salary(g("Guaranteed_Comp", 0)),
-            "base_salary_raw":  float(g("Base_Salary", 0) or 0),
-            "guaranteed_comp_raw": float(g("Guaranteed_Comp", 0) or 0),
-        }
-
-        if is_gk:
-            p["GK_Efficiency"]  = float(g("GK_Efficiency", 0) or 0)
-            p["GA_p90"]         = float(g("GA_p90", 0) or 0)
-            p["Save_pct"]       = float(g("Save%", 0) or 0)
-            p["Save%"]          = float(g("Save%", 0) or 0)
-            p["GA_minus_xGA"]   = float(g("GA_minus_xGA", 0) or 0)
-            p["GK_Goals_Added"] = float(g("GK_Goals_Added", 0) or 0)
-            # Raw totals for Simple view
-            p["GA_total"]       = float(g("GA", 0) or 0)
-            p["Saves_total"]    = float(g("Saves", 0) or 0)
-            p["SoTA_total"]     = float(g("SoTA", 0) or 0)
-        else:
-            gls = float(g("Goals_p90", 0) or 0)
-            xg  = float(g("xG_p90", 0) or 0)
-            ast = float(g("Assists_p90", 0) or 0)
-            xag = float(g("xAG_p90", 0) or 0)
-            sot = float(g("SoT_p90", 0) or 0)
-            kp  = float(g("KeyPasses_p90", 0) or 0)
-            p["Attacking_Efficiency"] = float(g("Attacking_Efficiency", 0) or 0)
-            p["Defensive_Efficiency"] = float(g("Defensive_Efficiency", 0) or 0)
-            p["Goals_p90"]     = gls
-            p["xG_p90"]        = xg
-            p["Assists_p90"]   = ast
-            p["xAG_p90"]       = xag
-            p["SoT_p90"]       = sot
-            p["KeyPasses_p90"] = kp
-            p["Goals_Added"]   = float(g("Goals_Added", 0) or 0)
-            p["Value_per_M"]   = float(g("Value_per_M", 0) or 0)
-            p["Tkl_Won_p90"]   = 0.0
-            p["Interceptions_p90"] = 0.0
-            # Raw totals for Simple view
-            p["Gls_total"] = float(g("Gls", 0) or 0)
-            p["xG_total"]  = float(g("xG", 0) or 0)
-            p["Ast_total"] = float(g("Ast", 0) or 0)
-            p["xAG_total"] = float(g("xAG", 0) or 0)
-            p["SoT_total"] = float(g("SoT", 0) or 0)
-            p["KP_total"]  = float(g("KP", 0) or 0)
-            p["Min_total"] = float(g("Min", 0) or 0)
-            # Goals Added by action type
-            p["ga_shooting"]     = float(g("ga_shooting", 0) or 0)
-            p["ga_passing"]      = float(g("ga_passing", 0) or 0)
-            p["ga_dribbling"]    = float(g("ga_dribbling", 0) or 0)
-            p["ga_receiving"]    = float(g("ga_receiving", 0) or 0)
-            p["ga_fouling"]      = float(g("ga_fouling", 0) or 0)
-            p["ga_interrupting"] = float(g("ga_interrupting", 0) or 0)
-            # aliases
-            p["Gls"] = gls
-            p["xG"]  = xg
-            p["Ast"] = ast
-            p["xAG"] = xag
-            p["SoT"] = sot
-            p["KP"]  = kp
-        players.append(p)
-    return players
+  /* ── CARD ── */
+  .card{
+    background:var(--card);border:1px solid var(--border);border-radius:12px;
+    padding:22px;backdrop-filter:blur(8px);transition:border-color .2s,box-shadow .2s;
+  }
+  .card:hover{border-color:rgba(57,255,110,0.28);box-shadow:var(--glow)}
+  .card-title{
+    font-family:'Exo 2',sans-serif;font-size:10px;letter-spacing:3px;
+    text-transform:uppercase;color:var(--text2);margin-bottom:14px;
+    display:flex;align-items:center;gap:8px;
+  }
+  .card-title::before{content:'';display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);flex-shrink:0}
+  .card-title.red::before{background:var(--red)}
+  .card-title.yellow::before{background:var(--yellow)}
+  .card-title.blue::before{background:var(--blue)}
 
 
-def main():
-    print("\n" + "="*50)
-    print("  Touchline USA — Data Injector")
-    print("="*50 + "\n")
+  /* ── PLAYER SEARCH ── */
+  .player-search-wrap{position:relative;min-width:220px}
+  .player-search-input{width:100%;box-sizing:border-box;background:var(--surface);border:1px solid rgba(57,255,110,0.2);color:var(--text);font-family:'Exo 2',sans-serif;font-size:12px;padding:8px 12px;border-radius:6px;outline:none;letter-spacing:1px}
+  .player-search-input:focus{border-color:var(--accent)}
+  .player-search-dropdown{position:absolute;top:100%;left:0;right:0;background:#0d2e1a;border:1px solid rgba(57,255,110,0.2);border-top:none;border-radius:0 0 6px 6px;max-height:240px;overflow-y:auto;z-index:500;display:none}
+  .player-search-dropdown.open{display:block}
+  .player-search-option{padding:8px 12px;font-family:'Exo 2',sans-serif;font-size:11px;color:var(--text2);cursor:pointer;letter-spacing:0.5px;border-bottom:1px solid rgba(57,255,110,0.05)}
+  .player-search-option:hover,.player-search-option.active{background:rgba(57,255,110,0.1);color:var(--text)}
+  .player-search-option span{color:var(--text2);font-size:10px;margin-left:6px}
 
-    if not HTML.exists():
-        print(f"ERROR: {HTML} not found")
-        return
 
-    print("Reading CSVs...")
-    outfield = csv_to_players(OUT_CSV, is_gk=False)
-    gks      = csv_to_players(GK_CSV,  is_gk=True)
-    all_players = outfield + gks
-    print(f"  {len(outfield)} outfield  |  {len(gks)} GKs  |  {len(all_players)} total")
 
-    if not all_players:
-        print("\n  ERROR: No players loaded — aborting to avoid wiping index.html")
-        return
+  /* ── VIEW TOGGLE ── */
+  .view-toggle{display:flex;background:rgba(255,255,255,0.05);border-radius:6px;padding:3px;gap:3px}
+  .view-toggle-btn{font-family:'Exo 2',sans-serif;font-size:11px;letter-spacing:1px;padding:5px 12px;border:none;border-radius:4px;cursor:pointer;background:none;color:var(--text2);transition:all .2s}
+  .view-toggle-btn.active{background:var(--accent);color:#000;font-weight:600}
 
-    with open(HTML, "r", encoding="utf-8") as f:
-        html = f.read()
+  /* ── GLOSSARY ── */
+  .glossary-btn{background:none;border:1px solid rgba(57,255,110,0.25);color:var(--text2);font-family:'Exo 2',sans-serif;font-size:11px;letter-spacing:1px;padding:5px 11px;border-radius:6px;cursor:pointer;margin-left:auto;transition:all .2s}
+  .glossary-btn:hover{border-color:var(--accent);color:var(--accent)}
+  .glossary-modal{max-width:680px;max-height:80vh;overflow-y:auto}
+  .glossary-section{margin-bottom:22px}
+  .glossary-section-title{font-family:'Exo 2',sans-serif;font-size:16px;letter-spacing:3px;color:var(--accent);margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid rgba(57,255,110,0.15)}
+  .glossary-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .glossary-item{display:flex;gap:10px;padding:7px 10px;background:rgba(255,255,255,0.03);border-radius:5px;align-items:flex-start}
+  .glossary-abbr{font-family:'Exo 2',sans-serif;font-size:15px;letter-spacing:1px;color:var(--yellow);min-width:70px;flex-shrink:0}
+  .glossary-def{font-family:'Exo 2',sans-serif;font-size:10px;color:var(--text2);line-height:1.5}
+  @media(max-width:560px){.glossary-grid{grid-template-columns:1fr}}
 
-    # Update stats date
-    today = date.today().strftime('%m/%d/%y').lstrip('0').replace('/0','/')
-    html = re.sub(r'STATS AS OF \d+/\d+/\d+', f'STATS AS OF {today}', html)
-    print(f"  Date updated to {today}")
+  /* ── SALARY & G+ ── */
+  .salary-badge{display:inline-block;font-family:'Exo 2',sans-serif;font-size:11px;color:var(--yellow);background:rgba(255,216,77,0.1);border:1px solid rgba(255,216,77,0.3);padding:2px 8px;border-radius:4px;letter-spacing:1px}
+  .value-badge{display:inline-block;font-family:'Exo 2',sans-serif;font-size:11px;color:var(--accent);background:rgba(57,255,110,0.08);border:1px solid rgba(57,255,110,0.25);padding:2px 8px;border-radius:4px;letter-spacing:1px}
+  .gplus-wrap{margin-top:14px}
+  .gplus-title{font-family:'Exo 2',sans-serif;font-size:10px;letter-spacing:2px;color:var(--text2);margin-bottom:8px}
+  .gplus-row{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+  .gplus-label{font-family:'Exo 2',sans-serif;font-size:10px;color:var(--text2);width:80px;text-align:right;flex-shrink:0}
+  .gplus-track{flex:1;height:6px;background:rgba(255,255,255,0.07);border-radius:3px;overflow:hidden;position:relative}
+  .gplus-fill{height:100%;border-radius:3px;transition:width .4s}
+  .gplus-val{font-family:'Exo 2',sans-serif;font-size:10px;width:44px;text-align:right;flex-shrink:0}
+  /* ── BADGES ── */
+  .pos-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-family:'Exo 2',sans-serif;font-size:10px;letter-spacing:1px}
+  .pos-FW{background:rgba(255,62,62,.18);color:var(--red);border:1px solid rgba(255,62,62,.3)}
+  .pos-MF{background:rgba(255,216,77,.14);color:var(--yellow);border:1px solid rgba(255,216,77,.25)}
+  .pos-DF{background:rgba(59,130,246,.14);color:#93c5fd;border:1px solid rgba(59,130,246,.25)}
+  .pos-GK{background:rgba(57,255,110,.12);color:var(--accent);border:1px solid var(--border)}
 
-    # Strip previous injection
-    html = re.sub(r'<!-- TLUSA-PLAYERS-START -->.*?<!-- TLUSA-PLAYERS-END -->', '',
-                  html, flags=re.DOTALL).rstrip()
+  .r-pill{display:inline-block;min-width:50px;padding:3px 9px;border-radius:20px;text-align:center;font-family:'Exo 2',sans-serif;font-size:12px}
+  .r-hi{background:rgba(57,255,110,.18);color:var(--accent);border:1px solid rgba(57,255,110,.3)}
+  .r-md{background:rgba(255,216,77,.14);color:var(--yellow);border:1px solid rgba(255,216,77,.25)}
+  .r-lo{background:rgba(255,62,62,.12);color:#f87171;border:1px solid rgba(255,62,62,.2)}
 
-    players_json = json.dumps(all_players, ensure_ascii=False)
+  /* ── TABLES ── */
+  .table-wrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  thead th{
+    font-family:'Exo 2',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;
+    color:var(--text2);padding:9px 12px;text-align:left;border-bottom:1px solid var(--border);
+    cursor:pointer;user-select:none;white-space:nowrap;
+  }
+  thead th:hover{color:var(--accent)}
+  thead th.sort-asc::after{content:' ▲';color:var(--accent);font-size:9px}
+  thead th.sort-desc::after{content:' ▼';color:var(--accent);font-size:9px}
+  tbody tr{border-bottom:1px solid rgba(57,255,110,.05);transition:background .15s;cursor:pointer}
+  tbody tr:hover{background:rgba(57,255,110,.06)}
+  td{padding:10px 12px;font-size:13px}
 
-    block = f"""
+  /* ── EFFICIENCY BAR ── */
+  .eff-track{height:6px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden}
+  .eff-fill{height:100%;border-radius:3px;transition:width .8s cubic-bezier(.4,0,.2,1)}
+  .eff-atk{background:linear-gradient(90deg,var(--red),var(--yellow))}
+  .eff-def{background:linear-gradient(90deg,var(--blue),var(--accent))}
+  .eff-gk{background:linear-gradient(90deg,var(--yellow),var(--accent))}
 
-<!-- TLUSA-PLAYERS-START -->
+  /* ── CHART ── */
+  .chart-wrap{position:relative;height:280px}
+  .chart-wrap.tall{height:340px}
+
+  /* ── CONTROLS ── */
+  .ctrl-group{display:flex;flex-direction:column;gap:5px}
+  .ctrl-label{font-family:'Exo 2',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text2)}
+  select,input[type=text],input[type=number]{
+    background:var(--card);border:1px solid var(--border);color:var(--text);
+    border-radius:6px;padding:8px 12px;font-family:'Exo 2',sans-serif;font-size:13px;
+    cursor:pointer;outline:none;transition:border-color .2s;
+  }
+  select:focus,select:hover,input:focus{border-color:var(--accent)}
+  input[type=number]{-moz-appearance:textfield}
+  input[type=number]::-webkit-inner-spin-button{opacity:.4}
+
+  /* ── MODAL ── */
+  .modal-backdrop{
+    display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);
+    z-index:1000;backdrop-filter:blur(4px);
+    align-items:center;justify-content:center;
+  }
+  .modal-backdrop.open{display:flex}
+  .modal{
+    background:#0d3020;border:1px solid rgba(57,255,110,.3);border-radius:16px;
+    padding:32px;width:min(760px,95vw);max-height:90vh;overflow-y:auto;
+    box-shadow:0 0 60px rgba(57,255,110,.15);
+  }
+  .modal-title{font-family:'Exo 2',sans-serif;font-size:28px;letter-spacing:3px;color:var(--accent);margin-bottom:22px}
+  .form-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .form-field{display:flex;flex-direction:column;gap:5px}
+  .form-field label{font-family:'Exo 2',sans-serif;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--text2)}
+  .form-field input,.form-field select{width:100%}
+  .form-section-title{
+    font-family:'Exo 2',sans-serif;font-size:10px;letter-spacing:3px;text-transform:uppercase;
+    color:var(--text2);padding:10px 0 6px;border-top:1px solid var(--border);
+    margin-top:6px;grid-column:1/-1;
+  }
+  .form-section-title span{color:var(--accent)}
+  .modal-actions{display:flex;gap:10px;margin-top:22px;justify-content:flex-end}
+
+  /* ── BUTTONS ── */
+  .btn{padding:9px 22px;border-radius:8px;border:none;cursor:pointer;font-family:'Exo 2',sans-serif;font-size:12px;letter-spacing:1px;text-transform:uppercase;transition:all .2s}
+  .btn-primary{background:var(--accent);color:var(--pitch);font-weight:700}
+  .btn-primary:hover{background:#5fffaa;box-shadow:0 0 16px rgba(57,255,110,.4)}
+  .btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border)}
+  .btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+  .btn-danger{background:rgba(255,62,62,.15);color:var(--red);border:1px solid rgba(255,62,62,.3)}
+  .btn-danger:hover{background:rgba(255,62,62,.25)}
+  .btn-add{
+    display:inline-flex;align-items:center;gap:8px;
+    background:rgba(57,255,110,.1);color:var(--accent);
+    border:1px dashed rgba(57,255,110,.4);border-radius:8px;
+    padding:10px 20px;cursor:pointer;font-family:'Exo 2',sans-serif;
+    font-size:12px;letter-spacing:1px;transition:all .2s;
+  }
+  .btn-add:hover{background:rgba(57,255,110,.18);border-color:var(--accent)}
+
+  /* ── ROW ACTIONS ── */
+  .row-actions{display:flex;gap:6px;opacity:0;transition:opacity .2s}
+  tbody tr:hover .row-actions{opacity:1}
+  .icon-btn{width:28px;height:28px;border-radius:6px;border:none;cursor:pointer;display:grid;place-items:center;font-size:13px;transition:all .2s}
+  .edit-btn{background:rgba(57,255,110,.12);color:var(--accent)}
+  .edit-btn:hover{background:rgba(57,255,110,.25)}
+  .del-btn{background:rgba(255,62,62,.1);color:var(--red)}
+  .del-btn:hover{background:rgba(255,62,62,.22)}
+
+  /* ── PROFILE ── */
+  .avatar{width:66px;height:66px;border-radius:50%;border:2px solid var(--accent);display:grid;place-items:center;font-family:'Exo 2',sans-serif;font-size:24px;color:var(--accent);background:rgba(57,255,110,.1);box-shadow:var(--glow);flex-shrink:0}
+  .player-name-big{font-family:'Exo 2',sans-serif;font-weight:700;font-size:26px;letter-spacing:2px;line-height:1}
+  .player-meta-sm{font-family:'Exo 2',sans-serif;font-size:11px;color:var(--text2);margin-top:3px;letter-spacing:1px}
+  .mini-stat{background:rgba(0,0,0,.2);border:1px solid var(--border);border-radius:8px;padding:9px 11px}
+  .mini-val{font-family:'Exo 2',sans-serif;font-size:22px;color:var(--accent);line-height:1}
+  .mini-key{font-family:'Exo 2',sans-serif;font-size:9px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+  .stats-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:10px;margin-top:16px}
+
+  /* ── EMPTY STATE ── */
+  .empty-state{text-align:center;padding:60px 20px;color:var(--text2)}
+  .empty-icon{font-size:48px;margin-bottom:14px}
+  .empty-title{font-family:'Exo 2',sans-serif;font-size:24px;letter-spacing:2px;color:var(--text);margin-bottom:8px}
+  .empty-sub{font-family:'Exo 2',sans-serif;font-size:12px;letter-spacing:1px}
+
+
+  /* ── MATCHDAY ARTICLES ── */
+  .md-season-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:12px}
+  .md-progress-wrap{display:flex;align-items:center;gap:12px}
+  .md-progress-track{width:200px;height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden}
+  .md-progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),#ffd84d);border-radius:3px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+  .md-progress-label{font-family:'Exo 2',sans-serif;font-size:11px;color:var(--text2);letter-spacing:1px;white-space:nowrap}
+  .md-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+  .md-card{
+    background:var(--card);border:1px solid var(--border);border-radius:12px;
+    padding:20px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;
+  }
+  .md-card:hover{border-color:rgba(57,255,110,0.35);box-shadow:var(--glow);transform:translateY(-2px)}
+  .md-card.published{border-left:3px solid var(--accent)}
+  .md-card.placeholder{border-left:3px solid rgba(255,255,255,0.08);opacity:.7}
+  .md-card.placeholder:hover{opacity:1}
+  .md-card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px}
+  .md-week-badge{font-family:'Exo 2',sans-serif;font-size:13px;letter-spacing:2px;color:var(--text2)}
+  .md-status{font-family:'Exo 2',sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;padding:3px 8px;border-radius:20px}
+  .md-status.live{background:rgba(57,255,110,0.15);color:var(--accent);border:1px solid rgba(57,255,110,0.3)}
+  .md-status.pending{background:rgba(255,255,255,0.05);color:var(--text2);border:1px solid rgba(255,255,255,0.1)}
+  .md-title{font-family:'Exo 2',sans-serif;font-size:20px;letter-spacing:1px;line-height:1.1;margin-bottom:8px;color:var(--text)}
+  .md-title.placeholder-title{color:var(--text2);font-size:17px}
+  .md-excerpt{font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:14px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .md-footer{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border);padding-top:10px;margin-top:auto}
+  .md-date{font-family:'Exo 2',sans-serif;font-size:10px;color:var(--text2);letter-spacing:1px}
+
+  /* article read modal */
+  .art-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);z-index:1100;place-items:center}
+  .art-backdrop.open{display:grid}
+  .art-modal{background:#0d3322;border:1px solid var(--border);border-radius:16px;width:min(760px,95vw);max-height:88vh;overflow-y:auto;box-shadow:0 0 80px rgba(0,0,0,.7),var(--glow)}
+  .art-modal-head{padding:28px 32px 0;display:flex;justify-content:space-between;align-items:flex-start;gap:16px;position:sticky;top:0;background:#0d3322;padding-bottom:16px;border-bottom:1px solid var(--border);z-index:2}
+  .art-modal-body{padding:28px 32px 36px}
+  .art-modal-week{font-family:'Exo 2',sans-serif;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--accent);margin-bottom:6px}
+  .art-modal-title{font-family:'Exo 2',sans-serif;font-size:32px;letter-spacing:2px;line-height:1.05;color:var(--text)}
+  .art-modal-meta{font-family:'Exo 2',sans-serif;font-size:11px;color:var(--text2);letter-spacing:1px;margin-top:6px}
+  .art-modal-content{font-size:15px;line-height:1.8;color:var(--text);margin-top:20px;word-break:break-word}
+  .art-modal-content p{margin-bottom:1.1em}
+  .art-modal-content strong{color:var(--text);font-weight:700}
+  .art-headline{font-family:'Exo 2',sans-serif;font-size:38px;letter-spacing:2px;line-height:1.05;color:var(--text);margin-bottom:6px}
+  .art-byline{font-family:'Exo 2',sans-serif;font-size:11px;color:var(--text2);letter-spacing:2px;margin-bottom:22px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+  .art-subheading{font-family:'Exo 2',sans-serif;font-size:26px;letter-spacing:2px;color:var(--accent);margin:28px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+  .art-subsubheading{font-family:'Exo 2',sans-serif;font-size:19px;letter-spacing:1px;color:var(--yellow);margin:22px 0 8px}
+  .art-embed{margin:20px 0;border-radius:10px;overflow:hidden;background:rgba(0,0,0,0.2);border:1px solid var(--border);padding:4px}
+  .art-embed iframe{display:block;width:100%;border-radius:7px}
+  .art-embed blockquote{margin:0}
+  .art-embed-link{display:inline-flex;align-items:center;gap:8px;padding:12px 16px;background:rgba(57,255,110,0.06);border:1px solid var(--border);border-radius:8px;color:var(--accent);font-family:'Exo 2',sans-serif;font-size:12px;letter-spacing:1px;text-decoration:none;word-break:break-all}
+  .art-embed-link:hover{background:rgba(57,255,110,0.12)}
+  .art-modal-content.placeholder-content{color:var(--text2);font-family:'Exo 2',sans-serif;font-size:12px;letter-spacing:1px;text-align:center;padding:40px 0}
+  .art-close{background:none;border:1px solid var(--border);color:var(--text2);border-radius:6px;padding:6px 13px;cursor:pointer;font-size:16px;flex-shrink:0;transition:all .15s}
+  .art-close:hover{border-color:var(--accent2);color:var(--accent2)}
+  .art-label{font-family:'Exo 2',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text2);margin-bottom:5px;display:block}
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar{width:6px;height:6px}
+  ::-webkit-scrollbar-track{background:var(--pitch)}
+  ::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
+
+  @media(max-width:900px){
+    .app{padding:16px}header{padding:16px}
+    .grid2,.grid3{grid-template-columns:1fr}
+    .form-grid{grid-template-columns:1fr 1fr}
+  }
+</style>
+</head>
+<body>
+<!-- ARTICLE DATA STORE — hidden textareas, safe from script parsing -->
+<div id="article-data-store" style="display:none">
+  <textarea data-md="1" data-title="Matchday 1: Miami, Tai Baribo, Sporting KC, Julian Hall" data-date="2026-02-22">HEADLINE: Matchday 1: Miami, Tai Baribo, Sporting KC, Julian Hall
+By Chase Ruch
+Welcome to matchday one! I tell you what, a lot of stuff is going on in the sports world right now that I've been keeping track of and the addition of MLS practically takes my viewership from 8 a.m. to 11:30 p.m.. No complaints here, though, as this year had a crazy offseason that either reinforced teams to an unprecedented caliber or a complete reshape of identity and approach.
+
+This is new to the scene and I am new to the scene when it comes to publishing my own work when it comes to Major League Soccer, but I have been invested in this league for a number of years now and feel like I can give contextual and well-thought analysis in 2026. There is no league I am more sicko-level invested in than this one, so I'll try to keep it swift and to the point each week.
+
+SUBHEADING: The layout
+I will give 3 to 4 headlines a week that I will dive into games with more diligence and depth. The headlines I select are not because I like the team or hate the team, but because I think they are the most discussion-worthy topic of the matchday. If you despise the headlines I choose, let me know on X (@ruch_chase) or command-F through the article and after the headlines you will see your game with my quick take on it!
+
+In some shape or form I have watched and developed a key takeaway from every game, and I will offer it here. Also, when the season matures, I will offer some graphics and statistical analysis that may be compelling to you.
+
+This pretty much sums it up for now. Let’s dive into the good stuff.
+
+SUBHEADING: The headlines
+
+SUB-SUBHEADING: The woes of Inter Miami at the L.A. Coliseum
+It was good that Apple TV and the MLS Countdown crew gave LAFC their flowers that they did deserve. When the crew offered its takes for the 2026 season of the MLS reigning champions in Inter Miami, the viewer may have thought they were projected 102 points on the year.
+
+Now, let me be exceptionally clear, Inter Miami is going to be good this season and will compete for every trophy possible this calendar year. Where the brakes start to pump for me is the notion that they will win everything and run away with it.
+
+The league is built on parity and to expect the unexpected, and the team they played in LAFC is potentially the strongest side it’s put together in club history. That is saying a lot considering their past successes.
+
+The nut graf is LAFC beat Inter Miami 3-0 in a game that was not particularly close. Messi was a non-factor (as was the rest of the Miami crew).
+
+This is my call to action that Inter Miami will have to play and work hard to ensure not only the CONCACAF Champions Cup they are adamant on winning this year, but to have any success in any competition. One of their own players, Rodrigo De Paul, put it best last week in an interview: “I think the MLS is harder to win than the [UEFA] Champions League.”
+
+David Martínez scored the first goal that slid past reigning MLS goalkeeper of the year Dayne St. Clair.
+
+Martínez was a “this guy could be neat” player this time last year for the black and gold. Since the Club World Cup, though, I am shocked he is still with LAFC.
+
+Last summer he kept the LAFC momentum against Chelsea(!!!) at 19 years old, and this year is looking like one where he is in the echelon of his teammates Denis Bouanga and Son Heung-min for stardom. I will be pleasantly surprised if he stays with LAFC this summer, as some teams across the pond will slide a good chunk of change on the table for him.
+
+As for now, the overwhelming sentiment at this current stage is LAFC (and every other team) will make it VERY hard for Inter Miami to capture any form of hardware. It is rare for an MLS team to wipe the floor across every competition, and it will not change this year.
+
+Also, Nathan Ordaz came off the bench and scored. The dude still has a respectable ceiling, and the fact that he is a bench player speaks of how deep LAFC are this year.
+
+EMBED: <iframe width="560" height="315" src="https://www.youtube.com/embed/N-CsBQ2Pqmo?si=O-J1agJncTIgDS8i" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+SUB-SUBHEADING: DC United and Tai Baribo could be a dark horse
+When researching what to write for the all-time wooden spoon leader (tied with the San Jose Earthquakes) DC United, I stumbled across an interesting statistic:
+
+**DC UNITED HAS NEVER LOST A SEASON OPENER IN THE POST-PANDEMIC ERA.**
+
+For a team that’s done a whole lot of losing as of late, they do not tend to drop points in the early stages of the season. Tai Baribo will probably keep that trend going for as long as he is there.
+
+If it were not for an offside flag, Baribo potentially could notch a brace against his old club Philadelphia Union. Instead he scored one, which proved enough to give DC all three points against Philadelphia who is having off the pitch and seemingly on it as well.
+
+When Baribo scored, he celebrated as well against his old club. Most would do the same if they thought their talents were only worth a cash trade and building around Milan Iloski instead of you.
+
+EMBED: <iframe width="560" height="315" src="https://www.youtube.com/embed/Fg9AZYwsORg?si=kQjTPrS3keeLlaIm" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+Time will tell to see who the eventual winners are of this striker saga, but Baribo for sure won the initial head-to-head.
+
+As for Philadelphia, it’s still a playoff team, but it needs to identify and hone in on a goal scoring threat sooner than later.
+
+SUB-SUBHEADING: Sporting KC starts on the wrong foot again
+One of the most mind-boggling offseasons this decade happened to Sporting KC and its first season under Swiss manager Raphaël Wicky. The club had **FIFTEEN** outfield players (but four goalkeepers!) at the turn of the preseason after the departure of a recently stagnant Dániel Sallói to Toronto FC.
+
+There were rumors, speculations, and even hopes of moves to the club throughout its transition from longtime manager Peter Vermees. It eventually just became a waiting game that had no fruitful ending to it.
+
+So the squad took the flight to the west coast to take on the San Jose Earthquakes and had nothing much to show in a 3-0 defeat. The Earthquakes were also without their marquee signing Timo Werner, who I am very much excited to see on an MLS pitch once this whole visa issue gets figured out.
+
+Daniel Munie matched his goal total from last year in his first game of the season as he had two and Preston Judd with one as well to wax out Sporting. Very much a “taking care of business” fashion in which the Earthquakes approached the game, and Sporting KC needs to do some business themselves if it wants to survive the season.
+
+SUB-SUBHEADING: Julian Hall and other USYNT members shine for Red Bulls
+Michael Bradley’s first time as a manager for a senior squad was fairly successful from almost every standpoint in a 2-1 win over an Orlando City team that looks much the same this year in terms of roster makeup.
+
+The headlines already wrote themselves when Bradley named his starting eleven for the evening. Julian Hall (17), Adri Mehmeti (16), and Matthew Dos Santos (17), all featured in the lineup while Eric Maxim Choupo-Moting (17 goals, 5 assists in 2025) was named to the bench.
+
+Probably cannot call it genius to start, but it worked for Bradley’s boys as Julian Hall found himself in good positions at the right time to score not one, but two goals. Once again, it is so, so early…but if these youngsters can put in production in the majority of their matches and Emil Forsberg and Choupo-Moting do their thing: watch out.
+
+Mehmeti also assisted Hall on the second goal! I will not make the official call on it, but I like my odds that that is the youngest assist-to-goal combo in MLS history.
+
+Also, remember Cade Cowell? He is in New York as well.
+
+EMBED: https://www.reddit.com/r/MLS/comments/1rb8ynx/in_what_is_likely_the_youngest_combined/
+
+SUBHEADING: The Nuggets
+**St. Louis 1 (Hartel 60’), Charlotte 1 (Biel 73’):** Both teams really trying to chase that expansion year adrenaline high again. The fanbases are anything but the issue, it’s about stringing results together. Wilfried Zaha looks A LOT more integrated with Charlotte this season and Hartel will have to be that guy for St. Louis now that Klauss is gone.
+
+**Cincinnati 2 (Denkey 80’, Hagglund 90’), Atlanta 0:** The first 45 minutes looked like old school Atlanta (Yes!) and old school Cincinnati (Oh no!). Then things went back to normal and Cincinnati looks to campaign for some hardware that is still elusive despite having the most total points in the last three seasons (187). This will more than likely not be possible without Evander, who went out with “hamstring tightness” per the broadcast in the 10th minute. This will be a closely monitored situation across the country.
+
+**Vancouver 1 (Jackson 57’), Salt Lake 0:** Vancouver fans may still be in dream land this season. RSL was very undermanned with the most notable absence being Diego Luna who picked up a knee injury but should be back in the near future. Jesper Sørensen may have liked to see a little more threat from the Whitecaps, but 3 points are 3 points. Plus, Thomas Müller said they were going to win anyway in what was a very satiric interview with Apple TV.
+
+EMBED: <iframe width="560" height="315" src="https://www.youtube.com/embed/WE5hrXJX6Tg?si=w5UG6gAGzjcWVksD" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+**Austin 2 (Hines-Ike 7’, Uzuni 76’), Minnesota 2 (Duggan 40’, Yeboah 90’):** Both teams new year’s resolution was to have more of the ball and score. So far, so good on that front as both teams looked very free flowing. The striker spot is the most questioned spot for Minnesota United with Tani Olouwaseyi’s departure being a void for all goal scoring hopes in the tail end of 2025. Yeboah coming up clutch in the final minutes is a good sign for the Loons.
+
+Also…it’s soapbox time. Kaylyn Kyle’s first words on-air for 2026 with Apple TV baffled me. I can envision a world where James Rodríguez would be a bust, but let’s not pretend Emmanuel Latte Lath and Olivier Giroud do not exist.
+
+EMBED: <blockquote class="twitter-tweet" data-media-max-width="560"><p lang="en" dir="ltr">Bookmark this tweet. ✔️<a href="https://twitter.com/KaylynKyle?ref_src=twsrc%5Etfw">@KaylynKyle</a>, <a href="https://twitter.com/BWPNINENINE?ref_src=twsrc%5Etfw">@BWPNINENINE</a>, <a href="https://twitter.com/SachaKljestan?ref_src=twsrc%5Etfw">@SachaKljestan</a> and <a href="https://twitter.com/kev_egan?ref_src=twsrc%5Etfw">@kev_egan</a> make their hot takes. <a href="https://t.co/5YcVtc2lcH">pic.twitter.com/5YcVtc2lcH</a></p>&mdash; MLS on Air (@MLSonAir) <a href="https://twitter.com/MLSonAir/status/2025370225869271257?ref_src=twsrc%5Etfw">February 22, 2026</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+**Dallas 3 (Musa 9’, 74’, Farrington 38’), Toronto 2 (Mihailovic 15’, Etienne Jr. 67’):** Musa needs to be that guy this year if Dallas is to have any success in reaching new heights. He showed it against Toronto, who are in need of a new number 9 to come in. Wait? Josh Sargent is coming over for over $20 million? I think Toronto needs that piece to integrate then we can properly judge them.
+
+**Houston 2 (Guilherme 67’, 78’), Chicago 1 (Cuypers 31’):** This may be viewed as a bottom-tier game by most, and rightfully so as it would be in the decade or so and beyond. Both of these teams have rosters and coaches to shock some people this season though. It will come down to if Chicago can hold onto a lead. Also, Guilherme probably had the best debut of the day and looked like a potential newcomer of the year candidate.
+
+**Nashville 4 (Surridge 5’, 16’, Mukhtar 39’, Madrigal 49’) New England 1 (Campana 47’):** Probably the most expected performances of the night were in Nashville. Surridge is a stud and Mukhtar is maintaining his resurgent form. New England needs a change of scenery with that rumored move to the Boston area and Matt Turner is not helping his initial USMNT stock for 2026.
+
+**Portland 3 (Mora 14’, Antony 20’, Lassiter 88’) Columbus 2 (Abdou Ali 6’, Rossi 44’):** Probably the most fun game of the night was at Providence Park. Two blue bloods looking to keep up with the new kids on the block and I think these are teams that will make some noise in their respective conferences. Abdou Ali needs the consistency up top that Columbus has not had since Cucho Hernandez.
+
+**San Diego 5 (McVey 14’, Pellegrino 45’+2’, Valakari 53’, Ingvartsen 59’, Zamblé 85’), Montreal 0:** San Diego looks very, very good and Montreal…does not. Aviles getting his routine red cards added insult to injury for Montreal. Also a super cool moment for Bryan Zamblé, a right to dream academy graduate who scored the fifth and final goal for San Diego.
+
+EMBED: <blockquote class="twitter-tweet" data-media-max-width="560"><p lang="en" dir="ltr">A goal we'll never forget… <a href="https://t.co/nskDcmraQ7">pic.twitter.com/nskDcmraQ7</a></p>&mdash; San Diego FC (@sandiegofc) <a href="https://twitter.com/sandiegofc/status/2025651313271550313?ref_src=twsrc%5Etfw">February 22, 2026</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+**LA Galaxy 1 (Klauss 2', Garces 🟥 65'), NYCFC 1 (Fernandez 66' PK):** The Galaxy look much improved from last season, which is not saying much as it was its worst in club history in 2025. Alonso Martínez being hurt for NYCFC is officially a big concern as the team lacked little quality or ideas. A VAR review for a Garces red card stood between LA Galaxy getting three points.
+
+**Seattle 2 (Rusnák 15', Rothrock 62'), Colorado 0:** I am sure Seattle will have a word or two with the top of the western conference this season, but Colorado could not get the ball in the first half to save its life. The surprising Paxten Aaronson move from last year is still very early for judgement, but the Rapids need to get some bang for their buck soon with some production.</textarea>
+</div>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon"><img src="tlusa_logo_1.svg" alt="Touchline USA"></div>
+    <div>
+      <h1>TOUCHLINE <span style="color:inherit"><span style="color:#ff4d6a">U</span><span style="color:#f0f4f8">S</span><span style="color:#4f8ef7">A</span></span></h1>
+      <div style="font-family:'Exo 2',sans-serif;font-size:11px;color:var(--text2);letter-spacing:2px;margin-top:2px;">BY CHASE RUCH — 2026 MLS SEASON</div>
+    </div>
+  </div>
+  <div class="hdr-meta">
+    <div><span class="live-dot"></span>STATS AS OF 2/23/26</div>
+    <div style="margin-top:4px"><a href="https://x.com/ruch_chase" target="_blank" style="color:var(--text2);font-family:'Exo 2',sans-serif;font-size:11px;letter-spacing:1px;text-decoration:none;">@ruch_chase ↗</a></div>
+  </div>
+</header>
+
+<div class="app">
+
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('matchday',this)">MATCHDAY REPORTS</button>
+    <button class="tab" onclick="switchTab('overview',this)">OVERVIEW</button>
+    <button class="tab" onclick="switchTab('roster',this)">ROSTER</button>
+    <button class="tab" onclick="switchTab('spotlight',this)">SPOTLIGHT</button>
+    <button class="tab" onclick="switchTab('compare',this)">COMPARE</button>
+    <button class="tab" onclick="switchTab('gk',this)">GOALKEEPERS</button>
+    <button class="glossary-btn" onclick="openGlossary()">? STATS KEY</button>
+  </div>
+
+  <!-- OVERVIEW -->
+  <div id="tab-overview" class="tab-panel">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:14px">
+      <div class="view-toggle">
+        <button class="view-toggle-btn active" id="ov-view-simple" onclick="setOverviewView('simple')">SIMPLE</button>
+        <button class="view-toggle-btn" id="ov-view-advanced" onclick="setOverviewView('advanced')">ADVANCED</button>
+      </div>
+    </div>
+    <div id="ov-empty" class="empty-state">
+      <div class="empty-icon">⚽</div>
+      <div class="empty-title">No Players Yet</div>
+      <div class="empty-sub">Import a CSV to start building your 2026 roster</div>
+    </div>
+    <div id="ov-content" style="display:none">
+      <div class="grid3" id="ov-heroes"></div>
+      <div class="grid2">
+        <div class="card"><div class="card-title">Attacking Efficiency — Top 15</div><div class="chart-wrap tall"><canvas id="chart-atk"></canvas></div></div>
+        <div class="card"><div class="card-title red">Defensive Efficiency — Top 15</div><div class="chart-wrap tall"><canvas id="chart-def"></canvas></div></div>
+      </div>
+      <div class="card" style="margin-bottom:18px"><div class="card-title" id="ov-scatter-title">xG vs Goals Per 90 — Scatter</div><div class="chart-wrap tall"><canvas id="chart-scatter"></canvas></div></div>
+    </div>
+  </div>
+
+  <!-- ROSTER -->
+  <div id="tab-roster" class="tab-panel">
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:18px">
+      <div class="ctrl-group">
+        <span class="ctrl-label">Sort By</span>
+        <select id="rs-sort" onchange="renderRoster()">
+          <option value="Gls_total">Goals</option>
+          <option value="Ast_total">Assists</option>
+          <option value="xG_total">xG</option>
+          <option value="KP_total">Key Passes</option>
+          <option value="Attacking_Efficiency">Attacking Efficiency</option>
+          <option value="Defensive_Efficiency">Defensive Efficiency</option>
+          <option value="Goals_p90">Goals / 90</option>
+          <option value="xG_p90">xG / 90</option>
+          <option value="Assists_p90">Assists / 90</option>
+          <option value="Goals_Added">Goals Added (G+)</option>
+        </select>
+      </div>
+      <div class="ctrl-group">
+        <span class="ctrl-label">Position</span>
+        <select id="rs-pos" onchange="renderRoster()">
+          <option value="ALL">All</option>
+          <option value="FW">Forwards</option>
+          <option value="MF">Midfielders</option>
+          <option value="DF">Defenders</option>
+        </select>
+      </div>
+      <div class="ctrl-group">
+        <span class="ctrl-label">Team</span>
+        <select id="rs-team" onchange="renderRoster()"><option value="ALL">All Teams</option></select>
+      </div>
+      <div class="view-toggle" style="margin-left:auto">
+        <button class="view-toggle-btn active" id="rs-view-simple" onclick="setRosterView('simple')">SIMPLE</button>
+        <button class="view-toggle-btn" id="rs-view-advanced" onclick="setRosterView('advanced')">ADVANCED</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table><thead><tr id="rs-thead"></tr></thead><tbody id="rs-tbody"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- SPOTLIGHT -->
+  <div id="tab-spotlight" class="tab-panel">
+    <div style="display:flex;gap:14px;align-items:center;margin-bottom:22px;flex-wrap:wrap">
+      <div class="ctrl-group">
+        <span class="ctrl-label">Select Player</span>
+        <div class="player-search-wrap" id="sp-search-wrap">
+          <input type="text" class="player-search-input" id="sp-search" placeholder="Search player..." autocomplete="off"
+            oninput="filterPlayerSearch('sp')" onfocus="openPlayerSearch('sp')" onblur="blurPlayerSearch('sp')" onkeydown="keyPlayerSearch(event,'sp')">
+          <div class="player-search-dropdown" id="sp-dropdown"></div>
+          <input type="hidden" id="sp-sel">
+        </div>
+      </div>
+      <div class="view-toggle" style="margin-left:auto">
+        <button class="view-toggle-btn active" id="sp-view-simple" onclick="setSpotlightView('simple')">SIMPLE</button>
+        <button class="view-toggle-btn" id="sp-view-advanced" onclick="setSpotlightView('advanced')">ADVANCED</button>
+      </div>
+    </div>
+    <div id="sp-empty" class="empty-state" style="display:none"><div class="empty-icon">👤</div><div class="empty-title">No Players Yet</div></div>
+    <div id="sp-content" style="display:none">
+      <div class="grid2" style="margin-bottom:18px">
+        <div class="card">
+          <div class="card-title">Player Profile</div>
+          <div style="display:flex;gap:18px;align-items:center">
+            <div id="sp-avatar" class="avatar">—</div>
+            <div><div id="sp-name" class="player-name-big">—</div><div id="sp-meta" class="player-meta-sm">—</div></div>
+          </div>
+          <div id="sp-stats" class="stats-row"></div>
+          <div id="sp-salary-row" style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"></div>
+          <div id="sp-gplus" class="gplus-wrap" style="display:none"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Efficiency Ratings</div>
+          <div style="margin-bottom:16px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+              <span style="font-family:'Exo 2',sans-serif;font-size:10px;letter-spacing:1px;color:var(--text2)">ATTACKING EFFICIENCY</span>
+              <span id="sp-atk-val" style="font-family:'Exo 2',sans-serif;font-size:12px;color:var(--yellow)">—</span>
+            </div>
+            <div class="eff-track" style="height:10px"><div id="sp-atk-bar" class="eff-fill eff-atk" style="width:0;height:10px"></div></div>
+          </div>
+          <div style="margin-bottom:20px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+              <span style="font-family:'Exo 2',sans-serif;font-size:10px;letter-spacing:1px;color:var(--text2)">DEFENSIVE EFFICIENCY</span>
+              <span id="sp-def-val" style="font-family:'Exo 2',sans-serif;font-size:12px;color:#93c5fd">—</span>
+            </div>
+            <div class="eff-track" style="height:10px"><div id="sp-def-bar" class="eff-fill eff-def" style="width:0;height:10px"></div></div>
+          </div>
+          <div class="chart-wrap" style="height:190px"><canvas id="chart-sp-radar"></canvas></div>
+        </div>
+      </div>
+      <div class="card"><div class="card-title">Per-90 Breakdown</div><div class="chart-wrap"><canvas id="chart-sp-bar"></canvas></div></div>
+    </div>
+  </div>
+
+  <!-- COMPARE -->
+  <div id="tab-compare" class="tab-panel">
+    <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:18px;align-items:center;margin-bottom:18px">
+      <div class="ctrl-group" style="width:100%"><span class="ctrl-label">Player A</span>
+        <div class="player-search-wrap" style="min-width:unset;width:100%">
+          <input type="text" class="player-search-input" id="cmp-a-search" placeholder="Search player..." autocomplete="off"
+            oninput="filterPlayerSearch('cmp-a')" onfocus="openPlayerSearch('cmp-a')" onblur="blurPlayerSearch('cmp-a')" onkeydown="keyPlayerSearch(event,'cmp-a')" style="width:100%">
+          <div class="player-search-dropdown" id="cmp-a-dropdown"></div>
+          <input type="hidden" id="cmp-a">
+        </div></div>
+      <div style="font-family:'Exo 2',sans-serif;font-size:30px;color:var(--yellow);text-align:center">VS</div>
+      <div class="ctrl-group" style="width:100%"><span class="ctrl-label">Player B</span>
+        <div class="player-search-wrap" style="min-width:unset;width:100%">
+          <input type="text" class="player-search-input" id="cmp-b-search" placeholder="Search player..." autocomplete="off"
+            oninput="filterPlayerSearch('cmp-b')" onfocus="openPlayerSearch('cmp-b')" onblur="blurPlayerSearch('cmp-b')" onkeydown="keyPlayerSearch(event,'cmp-b')" style="width:100%">
+          <div class="player-search-dropdown" id="cmp-b-dropdown"></div>
+          <input type="hidden" id="cmp-b">
+        </div></div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:14px">
+      <div class="view-toggle">
+        <button class="view-toggle-btn active" id="cmp-view-simple" onclick="setCmpView('simple')">SIMPLE</button>
+        <button class="view-toggle-btn" id="cmp-view-advanced" onclick="setCmpView('advanced')">ADVANCED</button>
+      </div>
+    </div>
+    <div class="grid2" style="margin-bottom:18px">
+      <div class="card"><div class="card-title">Player A</div><div id="cmp-name-a" class="player-name-big">—</div><div id="cmp-meta-a" class="player-meta-sm" style="margin-bottom:14px">—</div><div id="cmp-stats-a"></div></div>
+      <div class="card"><div class="card-title red">Player B</div><div id="cmp-name-b" class="player-name-big">—</div><div id="cmp-meta-b" class="player-meta-sm" style="margin-bottom:14px">—</div><div id="cmp-stats-b"></div></div>
+    </div>
+    <div class="card"><div class="card-title" id="cmp-chart-title">Head-to-Head Per-90</div><div class="chart-wrap tall"><canvas id="chart-cmp"></canvas></div></div>
+  </div>
+
+  <!-- GOALKEEPERS -->
+  <div id="tab-gk" class="tab-panel">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:14px">
+      <div class="view-toggle">
+        <button class="view-toggle-btn active" id="gk-view-simple" onclick="setGKView('simple')">SIMPLE</button>
+        <button class="view-toggle-btn" id="gk-view-advanced" onclick="setGKView('advanced')">ADVANCED</button>
+      </div>
+    </div>
+    <div id="gk-empty" class="empty-state"><div class="empty-icon">🧤</div><div class="empty-title">No Goalkeepers Yet</div><div class="empty-sub">Select GK as position when adding a player</div></div>
+    <div id="gk-content" style="display:none">
+      <div class="grid3" id="gk-podium" style="margin-bottom:18px"></div>
+      <div class="grid2">
+        <div class="card"><div class="card-title yellow" id="gk-chart1-title">GK Rankings</div><div class="chart-wrap tall"><canvas id="chart-gk-bar"></canvas></div></div>
+        <div class="card"><div class="card-title" id="gk-chart2-title">Goals Allowed / 90</div><div class="chart-wrap tall"><canvas id="chart-gk-psxg"></canvas></div></div>
+      </div>
+      <div class="card" style="margin-top:18px">
+        <div class="table-wrap">
+          <table>
+            <thead><tr id="gk-thead"></tr></thead>
+            <tbody id="gk-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MATCHDAY REPORTS -->
+  <div id="tab-matchday" class="tab-panel active">
+    <div class="md-season-bar">
+      <div>
+        <div style="font-family:'Exo 2',sans-serif;font-size:28px;letter-spacing:3px">2026 MLS SEASON REPORTS</div>
+        <div style="font-family:'Exo 2',sans-serif;font-size:11px;color:var(--text2);letter-spacing:1px;margin-top:4px">Click a matchday card to read or write the report</div>
+      </div>
+      <div class="md-progress-wrap">
+        <div class="md-progress-label"><span id="md-published-count">0</span> / 34 PUBLISHED</div>
+        <div class="md-progress-track"><div class="md-progress-fill" id="md-progress-bar" style="width:0%"></div></div>
+      </div>
+    </div>
+    <div class="md-grid" id="md-grid"></div>
+  </div>
+
+
+</div>
+
+<!-- ══════════ MODAL ══════════ -->
+<div class="modal-backdrop" id="modal" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">ADD PLAYER</div>
+    <div class="form-grid">
+
+      <div class="form-field"><label>Player Name *</label><input type="text" id="f-name" placeholder="e.g. Lionel Messi"></div>
+      <div class="form-field"><label>Team / Squad *</label><input type="text" id="f-squad" placeholder="e.g. Inter Miami"></div>
+      <div class="form-field"><label>Position *</label>
+        <select id="f-pos" onchange="toggleGKFields()">
+          <option value="FW">FW — Forward</option>
+          <option value="MF">MF — Midfielder</option>
+          <option value="DF">DF — Defender</option>
+          <option value="GK">GK — Goalkeeper</option>
+        </select>
+      </div>
+      <div class="form-field"><label>Age</label><input type="number" id="f-age" placeholder="25" min="15" max="45"></div>
+      <div class="form-field"><label>Nation</label><input type="text" id="f-nation" placeholder="e.g. USA"></div>
+      <div class="form-field"><label>90s Played *</label><input type="number" id="f-90s" placeholder="e.g. 24.5" step="0.1" min="0"></div>
+
+      <div class="form-section-title"><span>⚽ ATTACKING</span> — season totals</div>
+      <div class="form-field"><label>Goals</label><input type="number" id="f-gls" placeholder="0" min="0"></div>
+      <div class="form-field"><label>xG</label><input type="number" id="f-xg" placeholder="0.00" step="0.01" min="0"></div>
+      <div class="form-field"><label>Shots on Target</label><input type="number" id="f-sot" placeholder="0" min="0"></div>
+      <div class="form-field"><label>Assists</label><input type="number" id="f-ast" placeholder="0" min="0"></div>
+      <div class="form-field"><label>xAG</label><input type="number" id="f-xag" placeholder="0.00" step="0.01" min="0"></div>
+      <div class="form-field"><label>Key Passes</label><input type="number" id="f-kp" placeholder="0" min="0"></div>
+      <div class="form-field"><label>Progressive Passes</label><input type="number" id="f-prgp" placeholder="0" min="0"></div>
+      <div class="form-field"><label>Progressive Carries</label><input type="number" id="f-prgc" placeholder="0" min="0"></div>
+      <div class="form-field"><label>Final 3rd Touches</label><input type="number" id="f-att3" placeholder="0" min="0"></div>
+
+      <div class="form-section-title"><span>🛡 DEFENSIVE</span> — season totals</div>
+      <div class="form-field"><label>Tackles Won</label><input type="number" id="f-tkl" placeholder="0" min="0"></div>
+      <div class="form-field"><label>Interceptions</label><input type="number" id="f-int" placeholder="0" min="0"></div>
+      <div class="form-field"><label>Blocks</label><input type="number" id="f-blk" placeholder="0" min="0"></div>
+      <div class="form-field"><label>Clearances</label><input type="number" id="f-clr" placeholder="0" min="0"></div>
+      <div class="form-field"><label>Pressures</label><input type="number" id="f-press" placeholder="0" min="0"></div>
+      <div class="form-field"><label>Pressure Success %</label><input type="number" id="f-presspct" placeholder="30" min="0" max="100" step="0.1"></div>
+      <div class="form-field"><label>Aerial Duels Won</label><input type="number" id="f-won" placeholder="0" min="0"></div>
+
+      <div class="form-section-title" id="gk-section"><span>🧤 GOALKEEPER</span> — GK only</div>
+      <div class="form-field" id="gk-f1"><label>Goals Against</label><input type="number" id="f-ga" placeholder="0" min="0"></div>
+      <div class="form-field" id="gk-f2"><label>Save % (0–100)</label><input type="number" id="f-sv" placeholder="75" min="0" max="100" step="0.1"></div>
+      <div class="form-field" id="gk-f3"><label>Clean Sheet %</label><input type="number" id="f-cs" placeholder="30" min="0" max="100" step="0.1"></div>
+      <div class="form-field" id="gk-f4"><label>PSxG-GA (season total)</label><input type="number" id="f-psxg" placeholder="0.0" step="0.1"></div>
+      <div class="form-field" id="gk-f5"><label>Launch %</label><input type="number" id="f-launch" placeholder="40" min="0" max="100" step="0.1"></div>
+      <div class="form-field" id="gk-f6"><label>Pass Completion %</label><input type="number" id="f-cmp" placeholder="65" min="0" max="100" step="0.1"></div>
+      <div class="form-field" id="gk-f7"><label>Crosses Stopped %</label><input type="number" id="f-stp" placeholder="12" min="0" max="100" step="0.1"></div>
+      <div class="form-field" id="gk-f8"><label>Def. Actions Outside Box</label><input type="number" id="f-opa" placeholder="0" min="0"></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">CANCEL</button>
+      <button class="btn btn-danger" id="del-btn" style="display:none" onclick="deleteCurrentPlayer()">DELETE</button>
+      <button class="btn btn-primary" onclick="savePlayer()">SAVE PLAYER</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════ ARTICLE MODAL ══════════ -->
+<div class="art-backdrop" id="art-backdrop" onclick="closeArtIfBg(event)">
+  <div class="art-modal" id="art-modal">
+    <div class="art-modal-head">
+      <div>
+        <div class="art-modal-week" id="art-week-label">MATCHDAY —</div>
+        <div class="art-modal-title" id="art-view-title">—</div>
+        <div class="art-modal-meta" id="art-view-meta">—</div>
+      </div>
+      <button class="art-close" onclick="closeArt()">✕</button>
+    </div>
+    <div class="art-modal-body">
+      <!-- READ VIEW -->
+      <div id="art-read-view">
+        <div class="art-modal-content" id="art-view-content"></div>
+      </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
-(function() {{
-  var _data = {players_json};
+// ════════════════════════ DATA ════════════════════════
+let players = [];
+let editingId = null;
+let charts = {};
+let rsSortCol = 'Attacking_Efficiency', rsSortDir = 'desc';
 
-  function tryLoad() {{
-    if (typeof players === 'undefined' ||
-        typeof computeRatings === 'undefined' ||
-        typeof refreshAll === 'undefined') {{
-      setTimeout(tryLoad, 100);
-      return;
-    }}
-    players = _data;
-    refreshAll();
-    console.log('[TLUSA] Loaded ' + players.length + ' players.');
-  }}
+const FIELD_MAP = {
+  name:'f-name', squad:'f-squad', pos:'f-pos', age:'f-age', nation:'f-nation', nineties:'f-90s',
+  Gls:'f-gls', xG:'f-xg', SoT:'f-sot', Ast:'f-ast', xAG:'f-xag',
+  KP:'f-kp', PrgP:'f-prgp', PrgC:'f-prgc', Att3:'f-att3',
+  TklW:'f-tkl', Int:'f-int', Blocks:'f-blk', Clr:'f-clr',
+  Press:'f-press', PressPct:'f-presspct', Won:'f-won',
+  GA:'f-ga', SavePct:'f-sv', CSPct:'f-cs', PSxGGA:'f-psxg',
+  Launch:'f-launch', CmpPct:'f-cmp', StpPct:'f-stp', OPA:'f-opa',
+};
+const GK_FIELDS = ['gk-section','gk-f1','gk-f2','gk-f3','gk-f4','gk-f5','gk-f6','gk-f7','gk-f8'];
 
-  if (document.readyState === 'loading') {{
-    document.addEventListener('DOMContentLoaded', function() {{ setTimeout(tryLoad, 100); }});
-  }} else {{
-    setTimeout(tryLoad, 100);
-  }}
-}})();
+// ════════════════════════ RATINGS ENGINE ════════════════════════
+function n90(v, nines){ return nines > 0 ? (v||0)/nines : 0; }
+
+function computeRatings(list) {
+  const out = list.filter(p => p.pos !== 'GK');
+  const gks = list.filter(p => p.pos === 'GK');
+
+  out.forEach(p => {
+    const n = Math.max(+p.nineties||0, 0.01);
+    p.Goals_p90         = n90(+p.Gls   ||0, n);
+    p.xG_p90            = n90(+p.xG    ||0, n);
+    p.SoT_p90           = n90(+p.SoT   ||0, n);
+    p.Assists_p90       = n90(+p.Ast   ||0, n);
+    p.xAG_p90           = n90(+p.xAG   ||0, n);
+    p.KP_p90            = n90(+p.KP    ||0, n);
+    p.PrgP_p90          = n90(+p.PrgP  ||0, n);
+    p.PrgC_p90          = n90(+p.PrgC  ||0, n);
+    p.Att3_p90          = n90(+p.Att3  ||0, n);
+    p.Tkl_Won_p90       = n90(+p.TklW  ||0, n);
+    p.Interceptions_p90 = n90(+p.Int   ||0, n);
+    p.Blocks_p90        = n90(+p.Blocks||0, n);
+    p.Clearances_p90    = n90(+p.Clr   ||0, n);
+    p.Pressures_p90     = n90(+p.Press ||0, n);
+    p.Press_pct         = +p.PressPct  ||0;
+    p.Aerial_p90        = n90(+p.Won   ||0, n);
+
+    p._atk = p.Goals_p90*0.20 + p.xG_p90*0.18 + p.SoT_p90*0.10
+           + p.Assists_p90*0.12 + p.xAG_p90*0.10 + p.KP_p90*0.08
+           + p.PrgP_p90*0.08 + p.PrgC_p90*0.08 + p.Att3_p90*0.06;
+
+    p._def = p.Tkl_Won_p90*0.22 + p.Interceptions_p90*0.20
+           + p.Blocks_p90*0.12 + p.Clearances_p90*0.12
+           + p.Pressures_p90*0.14 + p.Press_pct*0.10
+           + p.Aerial_p90*0.10;
+  });
+
+  gks.forEach(p => {
+    const n = Math.max(+p.nineties||0, 0.01);
+    p.GA_p90         = n90(+p.GA    ||0, n);
+    p['PSxG-GA_p90'] = n90(+p.PSxGGA||0, n);
+    p['Save%']       = +p.SavePct   ||0;
+    p['CS%']         = +p.CSPct     ||0;
+    p['Launch%']     = +p.Launch    ||0;
+    p['Cmp%']        = +p.CmpPct    ||0;
+    p['Stp%']        = +p.StpPct    ||0;
+    p.OPA_p90        = n90(+p.OPA   ||0, n);
+  });
+
+  // Min-max normalise outfield
+  const mm = (arr, key, inv=false) => {
+    const vals = arr.map(p => inv ? -(p[key]||0) : (p[key]||0));
+    const lo = Math.min(...vals), hi = Math.max(...vals);
+    arr.forEach((p,i) => { p[key+'_n'] = hi===lo ? 50 : (vals[i]-lo)/(hi-lo)*100; });
+  };
+  if (out.length){ mm(out,'_atk'); mm(out,'_def'); out.forEach(p=>{ p.Attacking_Efficiency=+p._atk_n.toFixed(1); p.Defensive_Efficiency=+p._def_n.toFixed(1); }); }
+
+  // Min-max normalise GK
+  if (gks.length) {
+    const keys = [['Save%',false],['PSxG-GA_p90',false],['GA_p90',true],['CS%',false],['Cmp%',false],['Stp%',false],['OPA_p90',false]];
+    const weights = [0.22,0.22,0.15,0.12,0.10,0.10,0.09];
+    const norms = keys.map(([k,inv]) => {
+      const vals = gks.map(p => inv ? -(p[k]||0) : (p[k]||0));
+      const lo=Math.min(...vals), hi=Math.max(...vals);
+      return gks.map((_,i) => hi===lo ? 50 : (vals[i]-lo)/(hi-lo)*100);
+    });
+    gks.forEach((p,i) => {
+      p.GK_Efficiency = +(norms.reduce((s,n,wi)=>s+n[i]*weights[wi],0)).toFixed(1);
+    });
+  }
+  return list;
+}
+
+// ════════════════════════ MODAL ════════════════════════
+function toggleGKFields() {
+  const isGK = document.getElementById('f-pos').value === 'GK';
+  GK_FIELDS.forEach(id => { const el=document.getElementById(id); if(el) el.style.display=isGK?'':'none'; });
+}
+
+function openModal(id=null) {
+  editingId = id;
+  document.getElementById('modal-title').textContent = id ? 'EDIT PLAYER' : 'ADD PLAYER';
+  document.getElementById('del-btn').style.display = id ? 'inline-flex' : 'none';
+  Object.values(FIELD_MAP).forEach(fid=>{ const el=document.getElementById(fid); if(el) el.value=''; });
+  if (id) {
+    const p = players.find(x=>x.id===id);
+    if (p) Object.entries(FIELD_MAP).forEach(([k,fid])=>{ const el=document.getElementById(fid); if(el&&p[k]!=null) el.value=p[k]; });
+  }
+  toggleGKFields();
+  document.getElementById('modal').classList.add('open');
+}
+
+function closeModal(){ document.getElementById('modal').classList.remove('open'); editingId=null; }
+function closeModalOutside(e){ if(e.target.id==='modal') closeModal(); }
+
+function savePlayer() {
+  const name  = document.getElementById('f-name').value.trim();
+  const squad = document.getElementById('f-squad').value.trim();
+  const nines = parseFloat(document.getElementById('f-90s').value);
+  if (!name)       { alert('Player name is required'); return; }
+  if (!squad)      { alert('Team is required'); return; }
+  if (!nines||nines<=0) { alert('90s Played must be > 0'); return; }
+
+  const p = { id: editingId||Date.now().toString() };
+  Object.entries(FIELD_MAP).forEach(([k,fid])=>{ const el=document.getElementById(fid); if(el) p[k]=el.tagName==='SELECT'?el.value:(el.value.trim()||null); });
+
+  if (editingId) { const i=players.findIndex(x=>x.id===editingId); if(i>=0) players[i]=p; }
+  else players.push(p);
+
+  computeRatings(players);
+  closeModal();
+  refreshAll();
+}
+
+function deleteCurrentPlayer(){
+  if(!editingId||!confirm('Delete this player?')) return;
+  players=players.filter(p=>p.id!==editingId);
+  computeRatings(players); closeModal(); refreshAll();
+}
+
+function quickDelete(id){
+  if(!confirm('Delete this player?')) return;
+  players=players.filter(p=>p.id!==id); computeRatings(players); refreshAll();
+}
+
+function clearAll(){
+  if(!players.length||!confirm(`Delete all ${players.length} players?`)) return;
+  players=[]; refreshAll();
+}
+
+// ════════════════════════ CHART HELPERS ════════════════════════
+const C={accent:'#00d4ff',red:'#ff4d6a',yellow:'#f5a623',blue:'#4f8ef7',text:'#f0f4f8',text2:'#7d8fa3',grid:'rgba(0,212,255,0.06)'};
+const baseOpts=()=>({responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(11,40,24,0.95)',borderColor:'rgba(57,255,110,0.3)',borderWidth:1,titleColor:C.text,bodyColor:C.text2,padding:10,titleFont:{family:"'Exo 2',sans-serif",size:11},bodyFont:{family:"'Exo 2',sans-serif",size:11}}},scales:{x:{ticks:{color:C.text2,font:{family:"'Exo 2',sans-serif",size:10},maxRotation:45},grid:{color:C.grid},border:{color:'rgba(57,255,110,0.1)'}},y:{ticks:{color:C.text2,font:{family:"'Exo 2',sans-serif",size:10}},grid:{color:C.grid},border:{color:'rgba(57,255,110,0.1)'}}}});
+function dc(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+function sn(n){const p=n.split(' ');return p.length>1?p[0][0]+'. '+p[p.length-1]:n;}
+function ini(n){return n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();}
+function rPill(v,t='g'){const n=+v,cls=n>=70?'r-hi':n>=40?'r-md':'r-lo';
+  if(t==='gold') return `<span class="r-pill" style="background:rgba(255,216,77,.15);color:var(--yellow);border:1px solid rgba(255,216,77,.3)">${n.toFixed(1)}</span>`;
+  return `<span class="r-pill ${cls}">${n.toFixed(1)}</span>`;}
+
+// ════════════════════════ REFRESH ════════════════════════
+function refreshAll(){
+  const _b=document.getElementById('player-count-badge'); if(_b) _b.textContent=`${players.length} player${players.length!==1?'s':''} entered`;
+  const out=players.filter(p=>p.pos!=='GK');
+  // search inputs — pre-select first player if none selected
+  if(!document.getElementById('sp-sel').value && out.length) { selectPlayer('sp', out[0].id, out[0].name); }
+  if(!document.getElementById('cmp-a').value && out.length) { selectPlayer('cmp-a', out[0].id, out[0].name); }
+  if(!document.getElementById('cmp-b').value && out.length>1) { selectPlayer('cmp-b', out[1].id, out[1].name); }
+  const teams=['ALL',...new Set(players.map(p=>p.squad))].sort();
+  const tSel=document.getElementById('rs-team'),curT=tSel.value;
+  tSel.innerHTML=teams.map(t=>`<option value="${t}">${t==='ALL'?'All Teams':t}</option>`).join('');
+  if([...tSel.options].some(o=>o.value===curT)) tSel.value=curT;
+  renderOverview(); renderRoster(); renderSpotlight(); renderCompare(); renderGK();
+}
+
+// ════════════════════════ OVERVIEW ════════════════════════
+var ovView = 'simple';
+function setOverviewView(v){
+  ovView = v;
+  document.getElementById('ov-view-simple').classList.toggle('active', v==='simple');
+  document.getElementById('ov-view-advanced').classList.toggle('active', v==='advanced');
+  renderOverview();
+}
+function renderOverview(){
+  const out=players.filter(p=>p.pos!=='GK'), gks=players.filter(p=>p.pos==='GK'), has=players.length>0;
+  document.getElementById('ov-empty').style.display=has?'none':'block';
+  document.getElementById('ov-content').style.display=has?'block':'none';
+  if(!has) return;
+
+  const isSimple = ovView === 'simple';
+
+  // Sort arrays for both views
+  const byA=[...out].sort((a,b)=>(b.Attacking_Efficiency||0)-(a.Attacking_Efficiency||0));
+  const byD=[...out].sort((a,b)=>(b.Defensive_Efficiency||0)-(a.Defensive_Efficiency||0));
+  const byG=[...gks].sort((a,b)=>(b.GK_Efficiency||0)-(a.GK_Efficiency||0));
+  const byGls=[...out].sort((a,b)=>(b.Gls_total||0)-(a.Gls_total||0));
+  const byAst=[...out].sort((a,b)=>(b.Ast_total||0)-(a.Ast_total||0));
+  const byXg=[...out].sort((a,b)=>(b.xG_total||0)-(a.xG_total||0));
+  const byKp=[...out].sort((a,b)=>(b.KP_total||0)-(a.KP_total||0));
+
+  // Hero cards — simple shows top scorer/assister/gk, advanced shows efficiency leaders
+  const heroes = isSimple ? [
+    {p:byGls[0], l:'Top Scorer',    stat:(p)=>`${(p.Gls_total||0).toFixed(0)} Goals`,       vc:'var(--red)'},
+    {p:byAst[0], l:'Top Assister',  stat:(p)=>`${(p.Ast_total||0).toFixed(0)} Assists`,      vc:'var(--yellow)'},
+    {p:byG[0],   l:'Top Goalkeeper',stat:(p)=>`${(p['Save%']||0).toFixed(1)}% Save%`,        vc:'var(--yellow)'},
+  ] : [
+    {p:byA[0], l:'Top Attacker',   stat:(p)=>`${(p.Attacking_Efficiency||0).toFixed(1)} ATK EFF`, vc:'var(--yellow)'},
+    {p:byD[0], l:'Top Defender',   stat:(p)=>`${(p.Defensive_Efficiency||0).toFixed(1)} DEF EFF`, vc:'#93c5fd'},
+    {p:byG[0], l:'Top Goalkeeper', stat:(p)=>`${(p.GK_Efficiency||0).toFixed(1)} GK EFF`,         vc:'var(--yellow)'},
+  ];
+
+  document.getElementById('ov-heroes').innerHTML=heroes.map(h=>{
+    if(!h.p) return `<div class="card"><div class="card-title">${h.l}</div><div style="color:var(--text2);font-family:'Exo 2',sans-serif;font-size:12px">None yet</div></div>`;
+    return `<div class="card"><div class="card-title">${h.l}</div>
+      <div class="player-name-big" style="font-size:20px">${h.p.name}</div>
+      <div class="player-meta-sm">${h.p.squad} · ${h.p.pos}</div>
+      <div style="margin-top:10px;font-family:'Exo 2',sans-serif;font-size:28px;color:${h.vc};letter-spacing:2px">${h.stat(h.p)}</div>
+    </div>`;
+  }).join('');
+
+  // Chart 1: Goals leaders (simple) vs ATK Efficiency (advanced)
+  const atkData = isSimple ? byGls.slice(0,15) : byA.slice(0,15);
+  const atkVals = isSimple ? atkData.map(p=>p.Gls_total||0) : atkData.map(p=>p.Attacking_Efficiency||0);
+  const atkTitle = isSimple ? 'Top Scorers — Season Goals' : 'Attacking Efficiency — Top 15';
+  document.querySelector('#tab-overview .grid2 .card:first-child .card-title').textContent = atkTitle;
+  dc('atk');
+  if(atkData.length){
+    charts['atk']=new Chart(document.getElementById('chart-atk').getContext('2d'),{type:'bar',
+      data:{labels:atkData.map(p=>sn(p.name)),datasets:[{data:atkVals,backgroundColor:atkData.map((_,i)=>`rgba(255,${62+i*9},62,${0.85-i*0.03})`),borderRadius:4}]},
+      options:{...baseOpts(),scales:{...baseOpts().scales,y:{...baseOpts().scales.y,...(!isSimple?{max:100}:{})}}}});
+  }
+
+  // Chart 2: Assists leaders (simple) vs DEF Efficiency (advanced)
+  const defData = isSimple ? byAst.slice(0,15) : byD.slice(0,15);
+  const defVals = isSimple ? defData.map(p=>p.Ast_total||0) : defData.map(p=>p.Defensive_Efficiency||0);
+  const defTitle = isSimple ? 'Top Assisters — Season Assists' : 'Defensive Efficiency — Top 15';
+  document.querySelector('#tab-overview .grid2 .card:last-child .card-title').textContent = defTitle;
+  dc('def');
+  if(defData.length){
+    charts['def']=new Chart(document.getElementById('chart-def').getContext('2d'),{type:'bar',
+      data:{labels:defData.map(p=>sn(p.name)),datasets:[{data:defVals,backgroundColor:defData.map((_,i)=>`rgba(${59+i*4},${130-i*4},246,${0.85-i*0.03})`),borderRadius:4}]},
+      options:{...baseOpts(),scales:{...baseOpts().scales,y:{...baseOpts().scales.y,...(!isSimple?{max:100}:{})}}}});
+  }
+
+  // Chart 3: xG vs Goals scatter (totals or per-90)
+  const xKey = isSimple ? 'xG_total' : 'xG_p90';
+  const yKey = isSimple ? 'Gls_total' : 'Goals_p90';
+  const xLabel = isSimple ? 'xG (Season Total)' : 'xG per 90';
+  const yLabel = isSimple ? 'Goals (Season Total)' : 'Goals per 90';
+  document.getElementById('ov-scatter-title').textContent = isSimple ? 'xG vs Goals — Season Totals' : 'xG vs Goals Per 90 — Scatter';
+  dc('scatter');
+  if(out.length){
+    const pc=p=>p.pos==='FW'?C.red:p.pos==='MF'?C.yellow:C.blue;
+    charts['scatter']=new Chart(document.getElementById('chart-scatter').getContext('2d'),{type:'scatter',
+      data:{datasets:[{data:out.map(p=>({x:p[xKey]||0,y:p[yKey]||0,player:p})),backgroundColor:out.map(p=>pc(p)+'cc'),borderColor:out.map(p=>pc(p)),pointRadius:7,pointHoverRadius:10}]},
+      options:{...baseOpts(),plugins:{...baseOpts().plugins,tooltip:{...baseOpts().plugins.tooltip,callbacks:{label:c=>{const p=c.raw.player;return[p.name+' ('+p.pos+')',`${xLabel}: ${(p[xKey]||0).toFixed(2)}  ${yLabel}: ${(p[yKey]||0).toFixed(2)}`];}}}},
+      scales:{x:{...baseOpts().scales.x,title:{display:true,text:xLabel,color:C.text2,font:{family:"'Exo 2',sans-serif",size:11}}},y:{...baseOpts().scales.y,title:{display:true,text:yLabel,color:C.text2,font:{family:"'Exo 2',sans-serif",size:11}}}}}});
+  }
+}
+
+// ════════════════════════ ROSTER ════════════════════════
+var rsView = 'simple';
+function setRosterView(v){
+  rsView=v;
+  document.getElementById('rs-view-simple').classList.toggle('active', v==='simple');
+  document.getElementById('rs-view-advanced').classList.toggle('active', v==='advanced');
+  renderRoster();
+}
+
+function renderRoster(){
+  const sb=document.getElementById('rs-sort').value;
+  let data=players.filter(p=>p.pos!=='GK');
+  const pos=document.getElementById('rs-pos').value, team=document.getElementById('rs-team').value;
+  if(pos!=='ALL') data=data.filter(p=>p.pos===pos);
+  if(team!=='ALL') data=data.filter(p=>p.squad===team);
+  data.sort((a,b)=>rsSortDir==='desc'?(b[sb]||0)-(a[sb]||0):(a[sb]||0)-(b[sb]||0));
+
+  const isSimple = rsView === 'simple';
+  const colspan = isSimple ? 10 : 13;
+
+  const simpleCols = [{k:'#',l:'#'},{k:'name',l:'PLAYER'},{k:'squad',l:'TEAM'},{k:'pos',l:'POS'},{k:'nineties',l:'90s'},{k:'Gls_total',l:'GOALS'},{k:'xG_total',l:'xG'},{k:'Ast_total',l:'ASSISTS'},{k:'xAG_total',l:'xAG'},{k:'SoT_total',l:'SHOTS OT'},{k:'KP_total',l:'KEY PASS'},{k:'',l:''}];
+  const advCols   = [{k:'#',l:'#'},{k:'name',l:'PLAYER'},{k:'squad',l:'TEAM'},{k:'pos',l:'POS'},{k:'nineties',l:'90s'},{k:'Attacking_Efficiency',l:'ATK EFF'},{k:'Defensive_Efficiency',l:'DEF EFF'},{k:'Goals_p90',l:'GLS/90'},{k:'xG_p90',l:'xG/90'},{k:'Assists_p90',l:'AST/90'},{k:'xAG_p90',l:'xAG/90'},{k:'SoT_p90',l:'SoT/90'},{k:'Goals_Added',l:'G+'},{k:'',l:''}];
+  const cols = isSimple ? simpleCols : advCols;
+
+  document.getElementById('rs-thead').innerHTML=cols.map(c=>{
+    if(!c.k) return '<th></th>';
+    const cl=rsSortCol===c.k?(rsSortDir==='desc'?'sort-desc':'sort-asc'):'';
+    return `<th class="${cl}" onclick="rsSort('${c.k}')">${c.l}</th>`;
+  }).join('');
+
+  const mono = "font-family:'Exo 2',sans-serif";
+  document.getElementById('rs-tbody').innerHTML=!data.length
+    ?`<tr><td colspan="${colspan}" style="text-align:center;padding:40px;color:var(--text2);${mono};font-size:12px">No players yet — import a CSV to get started</td></tr>`
+    :data.map((p,i)=> isSimple ? `<tr>
+      <td style="color:var(--text2);${mono}">${i+1}</td>
+      <td style="font-weight:500">${p.name}</td>
+      <td style="color:var(--text2);font-size:12px">${p.squad}</td>
+      <td><span class="pos-badge pos-${p.pos}">${p.pos}</span></td>
+      <td style="${mono};color:var(--text2)">${(+p.nineties||0).toFixed(1)}</td>
+      <td style="${mono}">${(p.Gls_total||0).toFixed(0)}</td>
+      <td style="${mono}">${(p.xG_total||0).toFixed(1)}</td>
+      <td style="${mono}">${(p.Ast_total||0).toFixed(0)}</td>
+      <td style="${mono}">${(p.xAG_total||0).toFixed(1)}</td>
+      <td style="${mono}">${(p.SoT_total||0).toFixed(0)}</td>
+      <td style="${mono}">${(p.KP_total||0).toFixed(0)}</td>
+      <td><div class="row-actions">
+        <button class="icon-btn edit-btn" onclick="event.stopPropagation();openModal('${p.id}')">✎</button>
+        <button class="icon-btn del-btn"  onclick="event.stopPropagation();quickDelete('${p.id}')">✕</button>
+      </div></td></tr>`
+    : `<tr>
+      <td style="color:var(--text2);${mono}">${i+1}</td>
+      <td style="font-weight:500">${p.name}</td>
+      <td style="color:var(--text2);font-size:12px">${p.squad}</td>
+      <td><span class="pos-badge pos-${p.pos}">${p.pos}</span></td>
+      <td style="${mono};color:var(--text2)">${(+p.nineties||0).toFixed(1)}</td>
+      <td>${rPill(p.Attacking_Efficiency||0)}</td>
+      <td>${rPill(p.Defensive_Efficiency||0,'b')}</td>
+      <td style="${mono}">${(p.Goals_p90||0).toFixed(2)}</td>
+      <td style="${mono}">${(p.xG_p90||0).toFixed(2)}</td>
+      <td style="${mono}">${(p.Assists_p90||0).toFixed(2)}</td>
+      <td style="${mono}">${(p.xAG_p90||0).toFixed(2)}</td>
+      <td style="${mono}">${(p.SoT_p90||0).toFixed(2)}</td>
+      <td style="${mono};color:${(p.Goals_Added||0)>=0?'var(--accent)':'var(--red)'}">${(p.Goals_Added||0)>=0?'+':''}${(p.Goals_Added||0).toFixed(3)}</td>
+      <td><div class="row-actions">
+        <button class="icon-btn edit-btn" onclick="event.stopPropagation();openModal('${p.id}')">✎</button>
+        <button class="icon-btn del-btn"  onclick="event.stopPropagation();quickDelete('${p.id}')">✕</button>
+      </div></td></tr>`).join('');
+}
+
+function rsSort(col){
+  if(rsSortCol===col) rsSortDir=rsSortDir==='desc'?'asc':'desc'; else{rsSortCol=col;rsSortDir='desc';}
+  document.getElementById('rs-sort').value=col; renderRoster();
+}
+
+// ════════════════════════ SPOTLIGHT ════════════════════════
+var spView = 'simple';
+function setSpotlightView(v){
+  spView=v;
+  document.getElementById('sp-view-simple').classList.toggle('active', v==='simple');
+  document.getElementById('sp-view-advanced').classList.toggle('active', v==='advanced');
+  renderSpotlight();
+}
+
+function renderSpotlight(){
+  const out=players.filter(p=>p.pos!=='GK'), has=out.length>0;
+  document.getElementById('sp-empty').style.display=has?'none':'block';
+  document.getElementById('sp-content').style.display=has?'block':'none';
+  if(!has) return;
+  const p=players.find(x=>x.id===document.getElementById('sp-sel').value)||out[0];
+  if(!p) return;
+
+  document.getElementById('sp-avatar').textContent=ini(p.name);
+  document.getElementById('sp-name').textContent=p.name;
+  document.getElementById('sp-meta').textContent=`${p.squad} · ${p.pos} · Age ${p.age||'—'} · ${(+p.nineties||0).toFixed(1)} × 90min`;
+  const atk=p.Attacking_Efficiency||0,def=p.Defensive_Efficiency||0;
+  document.getElementById('sp-atk-bar').style.width=atk+'%';
+  document.getElementById('sp-atk-val').textContent=atk.toFixed(1)+' / 100';
+  document.getElementById('sp-def-bar').style.width=def+'%';
+  document.getElementById('sp-def-val').textContent=def.toFixed(1)+' / 100';
+
+  const simpleStats = [
+    {v:(p.Gls_total||0).toFixed(0),  k:'GOALS'},
+    {v:(p.xG_total||0).toFixed(1),   k:'xG'},
+    {v:(p.Ast_total||0).toFixed(0),  k:'ASSISTS'},
+    {v:(p.xAG_total||0).toFixed(1),  k:'xAG'},
+    {v:(p.SoT_total||0).toFixed(0),  k:'SHOTS OT'},
+    {v:(p.KP_total||0).toFixed(0),   k:'KEY PASSES'},
+    {v:(p.nineties||0).toFixed(1),   k:'90s PLAYED'},
+    {v:p.Min_total?(p.Min_total||0).toFixed(0):(((p.nineties||0)*90).toFixed(0)), k:'MINUTES'},
+  ];
+  const advStats = [
+    {v:(p.Goals_p90||0).toFixed(2),  k:'GLS/90'},
+    {v:(p.xG_p90||0).toFixed(2),     k:'xG/90'},
+    {v:(p.Assists_p90||0).toFixed(2),k:'AST/90'},
+    {v:(p.xAG_p90||0).toFixed(2),    k:'xAG/90'},
+    {v:(p.SoT_p90||0).toFixed(2),    k:'SoT/90'},
+    {v:(p.Goals_Added||0).toFixed(3),k:'G+ TOTAL'},
+  ];
+  document.getElementById('sp-stats').innerHTML=(spView==='simple' ? simpleStats : advStats)
+    .map(s=>`<div class="mini-stat"><div class="mini-val">${s.v}</div><div class="mini-key">${s.k}</div></div>`).join('');
+
+  // Hide efficiency bars and g+ breakdown in simple view
+  document.querySelectorAll('#sp-content .eff-track, #sp-content .eff-track ~ *, #sp-atk-val, #sp-def-val').forEach(el=>{});
+  const effCard = document.querySelector('#tab-spotlight .card:nth-child(2)');
+  if(effCard) effCard.style.display = spView==='simple' ? 'none' : 'block';
+
+  // Salary row
+  const salRow = document.getElementById('sp-salary-row');
+  salRow.innerHTML = '';
+  if(p.guaranteed_comp) salRow.innerHTML += `<span class="salary-badge">💰 ${p.guaranteed_comp}</span>`;
+  if(p.Value_per_M && p.Value_per_M !== 0) salRow.innerHTML += `<span class="value-badge">⚡ ${(p.Value_per_M||0).toFixed(2)} g+/$M</span>`;
+
+  // Goals Added breakdown
+  const gaTypes = [
+    {k:'ga_shooting',   l:'SHOOTING'},
+    {k:'ga_passing',    l:'PASSING'},
+    {k:'ga_dribbling',  l:'DRIBBLING'},
+    {k:'ga_receiving',  l:'RECEIVING'},
+    {k:'ga_fouling',    l:'FOULING'},
+    {k:'ga_interrupting',l:'INTERRUPT'},
+  ];
+  const gaVals = gaTypes.map(t => ({l:t.l, v:p[t.k]||0}));
+  const hasGA = gaVals.some(x => x.v !== 0);
+  const gpEl = document.getElementById('sp-gplus');
+  if(hasGA){
+    const absMax = Math.max(...gaVals.map(x=>Math.abs(x.v)), 0.01);
+    gpEl.style.display = 'block';
+    gpEl.innerHTML = '<div class="gplus-title">GOALS ADDED BREAKDOWN</div>' +
+      gaVals.map(x => {
+        const pct = Math.abs(x.v) / absMax * 100;
+        const col = x.v >= 0 ? 'var(--accent)' : 'var(--red)';
+        const sign = x.v >= 0 ? '+' : '';
+        return `<div class="gplus-row">
+          <div class="gplus-label">${x.l}</div>
+          <div class="gplus-track"><div class="gplus-fill" style="width:${pct}%;background:${col}"></div></div>
+          <div class="gplus-val" style="color:${col}">${sign}${x.v.toFixed(3)}</div>
+        </div>`;
+      }).join('');
+  } else {
+    gpEl.style.display = 'none';
+  }
+
+  const nm=(v,k)=>{const mx=Math.max(...out.map(d=>d[k]||0));return mx?v/mx:0;};
+  dc('sp-radar');
+  charts['sp-radar']=new Chart(document.getElementById('chart-sp-radar').getContext('2d'),{type:'radar',
+    data:{labels:['Goals/90','xG/90','Assists/90','SoT/90','Tkl/90','Int/90','Press/90'],datasets:[{
+      data:[nm(p.Goals_p90||0,'Goals_p90'),nm(p.xG_p90||0,'xG_p90'),nm(p.Assists_p90||0,'Assists_p90'),nm(p.SoT_p90||0,'SoT_p90'),nm(p.Tkl_Won_p90||0,'Tkl_Won_p90'),nm(p.Interceptions_p90||0,'Interceptions_p90'),nm(p.Pressures_p90||0,'Pressures_p90')],
+      backgroundColor:'rgba(57,255,110,0.12)',borderColor:C.accent,pointBackgroundColor:C.accent,pointRadius:3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{...baseOpts().plugins.tooltip}},
+      scales:{r:{min:0,max:1,ticks:{display:false},grid:{color:C.grid},angleLines:{color:'rgba(57,255,110,0.1)'},pointLabels:{color:C.text2,font:{family:"'Exo 2',sans-serif",size:10}}}}}});
+
+  dc('sp-bar');
+  const spBarLabels = spView==='simple'
+    ? ['Goals','xG','Assists','xAG','Shots OT','Key Passes']
+    : ['Goals/90','xG/90','Assists/90','xAG/90','SoT/90','G+'];
+  const spBarData = spView==='simple'
+    ? [p.Gls_total,p.xG_total,p.Ast_total,p.xAG_total,p.SoT_total,p.KP_total].map(v=>v||0)
+    : [p.Goals_p90,p.xG_p90,p.Assists_p90,p.xAG_p90,p.SoT_p90,p.Goals_Added].map(v=>v||0);
+  const spBarColors = [C.red,C.red,C.yellow,C.yellow,C.yellow,C.accent];
+  charts['sp-bar']=new Chart(document.getElementById('chart-sp-bar').getContext('2d'),{type:'bar',
+    data:{labels:spBarLabels,
+      datasets:[{data:spBarData,
+        backgroundColor:spBarColors.map(c=>c+'cc'),
+        borderColor:spBarColors,borderWidth:1,borderRadius:4}]},
+    options:baseOpts()});
+}
+
+// ════════════════════════ COMPARE ════════════════════════
+var cmpView = 'simple';
+function setCmpView(v){
+  cmpView = v;
+  document.getElementById('cmp-view-simple').classList.toggle('active', v==='simple');
+  document.getElementById('cmp-view-advanced').classList.toggle('active', v==='advanced');
+  renderCompare();
+}
+
+function renderCompare(){
+  const out=players.filter(p=>p.pos!=='GK'); if(out.length<2) return;
+  const a=players.find(x=>x.id===document.getElementById('cmp-a').value);
+  const b=players.find(x=>x.id===document.getElementById('cmp-b').value);
+  if(!a||!b) return;
+
+  const isSimple = cmpView === 'simple';
+  const statRow = (l,v) => `<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)"><span style="font-family:'Exo 2',sans-serif;font-size:11px;color:var(--text2)">${l}</span><span style="font-family:'Exo 2',sans-serif;font-size:20px;color:${col};letter-spacing:1px">${v}</span></div>`;
+
+  const fill=(sfx,p,col)=>{
+    document.getElementById('cmp-name-'+sfx).textContent=p.name;
+    document.getElementById('cmp-meta-'+sfx).textContent=`${p.squad} · ${p.pos} · ${(+p.nineties||0).toFixed(1)} × 90min`;
+    const simpleStats = [
+      {l:'Goals',        v:(p.Gls_total||0).toFixed(0)},
+      {l:'xG',           v:(p.xG_total||0).toFixed(1)},
+      {l:'Assists',      v:(p.Ast_total||0).toFixed(0)},
+      {l:'xAG',          v:(p.xAG_total||0).toFixed(1)},
+      {l:'Shots on Target', v:(p.SoT_total||0).toFixed(0)},
+      {l:'Key Passes',   v:(p.KP_total||0).toFixed(0)},
+      {l:'Minutes',      v:(p.Min_total||0).toFixed(0)},
+    ];
+    const advStats = [
+      {l:'ATK Efficiency',  v:(p.Attacking_Efficiency||0).toFixed(1)},
+      {l:'DEF Efficiency',  v:(p.Defensive_Efficiency||0).toFixed(1)},
+      {l:'Goals / 90',      v:(p.Goals_p90||0).toFixed(2)},
+      {l:'xG / 90',         v:(p.xG_p90||0).toFixed(2)},
+      {l:'Assists / 90',    v:(p.Assists_p90||0).toFixed(2)},
+      {l:'xAG / 90',        v:(p.xAG_p90||0).toFixed(2)},
+      {l:'SoT / 90',        v:(p.SoT_p90||0).toFixed(2)},
+      {l:'Goals Added',     v:(p.Goals_Added||0).toFixed(3)},
+      {l:'Salary',          v:p.guaranteed_comp||'N/A'},
+      {l:'Value (g+/$M)',   v:p.Value_per_M?(p.Value_per_M||0).toFixed(2):'N/A'},
+    ];
+    document.getElementById('cmp-stats-'+sfx).innerHTML=(isSimple ? simpleStats : advStats)
+      .map(s=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)"><span style="font-family:'Exo 2',sans-serif;font-size:11px;color:var(--text2)">${s.l}</span><span style="font-family:'Exo 2',sans-serif;font-size:20px;color:${col};letter-spacing:1px">${s.v}</span></div>`).join('');
+  };
+  fill('a',a,C.accent); fill('b',b,C.red);
+
+  dc('cmp');
+  const ms = isSimple
+    ? ['Gls_total','xG_total','Ast_total','xAG_total','SoT_total','KP_total']
+    : ['Goals_p90','xG_p90','Assists_p90','xAG_p90','SoT_p90','Goals_Added'];
+  const ml = isSimple
+    ? ['Goals','xG','Assists','xAG','SoT','Key Passes']
+    : ['Gls/90','xG/90','Ast/90','xAG/90','SoT/90','G+'];
+  document.getElementById('cmp-chart-title').textContent = isSimple ? 'Head-to-Head Season Totals' : 'Head-to-Head Per-90';
+  charts['cmp']=new Chart(document.getElementById('chart-cmp').getContext('2d'),{type:'bar',
+    data:{labels:ml,datasets:[
+      {label:a.name,data:ms.map(m=>a[m]||0),backgroundColor:C.accent+'99',borderColor:C.accent,borderWidth:1,borderRadius:4},
+      {label:b.name,data:ms.map(m=>b[m]||0),backgroundColor:C.red+'99',borderColor:C.red,borderWidth:1,borderRadius:4},
+    ]},options:{...baseOpts(),plugins:{...baseOpts().plugins,legend:{display:true,labels:{color:C.text2,font:{family:"'Exo 2',sans-serif",size:11},boxWidth:12}}}}});
+}
+
+// ════════════════════════ GOALKEEPERS ════════════════════════
+var gkView = 'simple';
+function setGKView(v){
+  gkView = v;
+  document.getElementById('gk-view-simple').classList.toggle('active', v==='simple');
+  document.getElementById('gk-view-advanced').classList.toggle('active', v==='advanced');
+  renderGK();
+}
+
+function renderGK(){
+  const gks=[...players.filter(p=>p.pos==='GK')].sort((a,b)=>(b.GK_Efficiency||0)-(a.GK_Efficiency||0));
+  const has=gks.length>0;
+  document.getElementById('gk-empty').style.display=has?'none':'block';
+  document.getElementById('gk-content').style.display=has?'block':'none';
+  if(!has) return;
+
+  const isSimple = gkView === 'simple';
+  const mono = "font-family:'Exo 2',sans-serif";
+
+  // Podium cards — simple shows Save% + GA, advanced shows efficiency + G+
+  document.getElementById('gk-podium').innerHTML=gks.slice(0,3).map((p,i)=>`
+    <div class="card" style="border-color:${['rgba(255,216,77,.4)','rgba(200,200,200,.3)','rgba(184,115,51,.3)'][i]}">
+      <div class="card-title" style="color:${['var(--yellow)','#ccc','#cd7f32'][i]}">${['🥇 #1','🥈 #2','🥉 #3'][i]} GOALKEEPER</div>
+      <div class="player-name-big" style="font-size:18px">${p.name}</div>
+      <div class="player-meta-sm">${p.squad} · ${(+p.nineties||0).toFixed(1)} × 90min</div>
+      <div style="margin-top:10px">
+        ${isSimple ? `
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+            <div class="mini-stat"><div class="mini-val" style="font-size:22px">${(p['Save%']||0).toFixed(1)}%</div><div class="mini-key">SAVE%</div></div>
+            <div class="mini-stat"><div class="mini-val" style="font-size:22px">${(p.GA_p90||0).toFixed(2)}</div><div class="mini-key">GA/90</div></div>
+            <div class="mini-stat"><div class="mini-val" style="font-size:22px">${p.Saves_total||0}</div><div class="mini-key">SAVES</div></div>
+            <div class="mini-stat"><div class="mini-val" style="font-size:22px">${p.GA_total||0}</div><div class="mini-key">GA TOTAL</div></div>
+          </div>` : `
+          <div class="eff-track"><div class="eff-fill eff-gk" style="width:${p.GK_Efficiency||0}%"></div></div>
+          <div style="font-family:'Exo 2',sans-serif;font-size:30px;color:var(--yellow);margin-top:3px">${(p.GK_Efficiency||0).toFixed(1)}</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+            <div class="mini-stat"><div class="mini-val" style="font-size:18px">${(p['Save%']||0).toFixed(1)}%</div><div class="mini-key">SAVE%</div></div>
+            <div class="mini-stat"><div class="mini-val" style="font-size:18px">${(p.GA_p90||0).toFixed(2)}</div><div class="mini-key">GA/90</div></div>
+            <div class="mini-stat"><div class="mini-val" style="font-size:18px;color:var(--accent)">${(p.GK_Goals_Added||0)>=0?'+':''}${(p.GK_Goals_Added||0).toFixed(2)}</div><div class="mini-key">G+</div></div>
+          </div>
+          ${p.guaranteed_comp ? `<div style="margin-top:8px"><span class="salary-badge">💰 ${p.guaranteed_comp}</span></div>` : ''}`}
+      </div>
+    </div>`).join('');
+
+  // Chart 1 — Simple: Saves leaders | Advanced: GK Efficiency
+  const byChart1 = isSimple
+    ? [...gks].sort((a,b)=>(b.Saves_total||0)-(a.Saves_total||0))
+    : gks;
+  document.getElementById('gk-chart1-title').textContent = isSimple ? 'Saves Leaders' : 'GK Efficiency Rankings';
+  dc('gk-bar');
+  charts['gk-bar']=new Chart(document.getElementById('chart-gk-bar').getContext('2d'),{type:'bar',
+    data:{labels:byChart1.map(p=>sn(p.name)),datasets:[{
+      data:byChart1.map(p=>isSimple?(p.Saves_total||0):(p.GK_Efficiency||0)),
+      backgroundColor:byChart1.map((_,i)=>`rgba(255,${216-i*14},${77-i*5},${0.85-i*0.04})`),borderRadius:4}]},
+    options:{...baseOpts(),scales:{...baseOpts().scales,y:{...baseOpts().scales.y,...(!isSimple?{max:100}:{})}}}});
+
+  // Chart 2 — Simple: GA/90 leaders (lowest = best) | Advanced: PSxG-GA
+  const byChart2 = isSimple
+    ? [...gks].sort((a,b)=>(a.GA_p90||0)-(b.GA_p90||0))
+    : [...gks].sort((a,b)=>(b.GA_minus_xGA||0)-(a.GA_minus_xGA||0));
+  document.getElementById('gk-chart2-title').textContent = isSimple ? 'Goals Allowed / 90 (lowest = best)' : 'PSxG-GA (Goals Prevented)';
+  dc('gk-psxg');
+  charts['gk-psxg']=new Chart(document.getElementById('chart-gk-psxg').getContext('2d'),{type:'bar',
+    data:{labels:byChart2.map(p=>sn(p.name)),datasets:[{
+      data:byChart2.map(p=>isSimple?(p.GA_p90||0):(p.GA_minus_xGA||0)),
+      backgroundColor:byChart2.map(p=>{
+        if(isSimple) return C.blue+'bb';
+        return (p.GA_minus_xGA||0)<=0?C.accent+'bb':C.red+'bb';
+      }),
+      borderColor:byChart2.map(p=>{
+        if(isSimple) return C.blue;
+        return (p.GA_minus_xGA||0)<=0?C.accent:C.red;
+      }),borderWidth:1,borderRadius:4}]},
+    options:baseOpts()});
+
+  // Table
+  const simpleCols = ['#','PLAYER','TEAM','90s','SAVE%','GA TOTAL','GA/90','SAVES'];
+  const advCols    = ['#','PLAYER','TEAM','90s','GK EFF','SAVE%','GA/90','PSxG-GA','G+','SALARY'];
+  document.getElementById('gk-thead').innerHTML=(isSimple?simpleCols:advCols)
+    .map(h=>`<th>${h}</th>`).join('');
+
+  document.getElementById('gk-tbody').innerHTML=gks.map((p,i)=>{
+    const nines = +p.nineties||0;
+    if(isSimple) return `<tr>
+      <td style="color:var(--text2);${mono}">${i+1}</td>
+      <td style="font-weight:500">${p.name}</td>
+      <td style="color:var(--text2);font-size:12px">${p.squad}</td>
+      <td style="${mono};color:var(--text2)">${nines.toFixed(1)}</td>
+      <td style="${mono}">${(p['Save%']||0).toFixed(1)}%</td>
+      <td style="${mono}">${p.GA_total||0}</td>
+      <td style="${mono}">${(p.GA_p90||0).toFixed(2)}</td>
+      <td style="${mono}">${p.Saves_total||0}</td>
+    </tr>`;
+    return `<tr>
+      <td style="color:var(--text2);${mono}">${i+1}</td>
+      <td style="font-weight:500">${p.name}</td>
+      <td style="color:var(--text2);font-size:12px">${p.squad}</td>
+      <td style="${mono};color:var(--text2)">${nines.toFixed(1)}</td>
+      <td>${rPill(p.GK_Efficiency||0,'gold')}</td>
+      <td style="${mono}">${(p['Save%']||0).toFixed(1)}%</td>
+      <td style="${mono}">${(p.GA_p90||0).toFixed(2)}</td>
+      <td style="${mono};color:${(p.GA_minus_xGA||0)<=0?'var(--accent)':'var(--red)'}">${(p.GA_minus_xGA||0)<=0?'':'+'}${(p.GA_minus_xGA||0).toFixed(3)}</td>
+      <td style="${mono};color:${(p.GK_Goals_Added||0)>=0?'var(--accent)':'var(--red)'}">${(p.GK_Goals_Added||0)>=0?'+':''}${(p.GK_Goals_Added||0).toFixed(3)}</td>
+      <td style="${mono};font-size:11px;color:var(--yellow)">${p.guaranteed_comp||'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ════════════════════════ TAB SWITCH ════════════════════════
+function switchTab(id,btn){ if(id==='matchday') setTimeout(renderMatchday,0);
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ════════════════════════ CSV EXPORT / IMPORT ════════════════════════
+
+
+
+// ════════════════════════ MATCHDAY ARTICLES ════════════════════════
+const ART_KEY = 'mls_tracker_articles_v3';
+let articles = (function() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(ART_KEY));
+    if (stored && Object.keys(stored).length > 0) return stored;
+  } catch(e) {}
+  return {};
+})();
+let artCurrentMD = null;
+
+
+
+// ── MLS TEAM COLORS ──────────────────────────────────────────────────────────
+const MLS_COLORS = {
+  // Eastern
+  'Atlanta':        '#80000A',
+  'Charlotte':      '#1A85C8',
+  'Chicago':        '#CE1141',
+  'Cincinnati':     '#F05323',
+  'Columbus':       '#FEDD00',
+  'DC United':      '#EE1523',
+  'DC':             '#EE1523',
+  'Inter Miami':    '#F7B5CD',
+  'Miami':          '#F7B5CD',
+  'CF Montreal':    '#00B5E2',
+  'Montreal':       '#00B5E2',
+  'Nashville':      '#ECE83A',
+  'New England':    '#C63323',
+  'NYCFC':          '#6CACE4',
+  'NY Red Bulls':   '#ED1E36',
+  'Red Bulls':      '#ED1E36',
+  'New York':       '#6CACE4',
+  'Orlando':        '#612B9B',
+  'Philadelphia':   '#B19B6A',
+  'Toronto':        '#B81137',
+  'New York City':  '#6CACE4',
+  // Western
+  'Austin':         '#00B140',
+  'Colorado':       '#960A2C',
+  'Rapids':         '#960A2C',
+  'Dallas':         '#BF0D3E',
+  'Houston':        '#F4911E',
+  'Dynamo':         '#F4911E',
+  'Kansas City':    '#91B0D5',
+  'Sporting KC':    '#91B0D5',
+  'Sporting':       '#91B0D5',
+  'LA Galaxy':      '#00245D',
+  'Galaxy':         '#00245D',
+  'LAFC':           '#C39E6D',
+  'Minnesota':      '#8CD2F4',
+  'Loons':          '#8CD2F4',
+  'Portland':       '#004812',
+  'Timbers':        '#004812',
+  'Real Salt Lake': '#B22222',
+  'Salt Lake':      '#B22222',
+  'RSL':            '#B22222',
+  'San Diego':      '#004F9F',
+  'San Jose':       '#0D4C92',
+  'Earthquakes':    '#0D4C92',
+  'Seattle':        '#5D9732',
+  'Sounders':       '#5D9732',
+  'St. Louis':      '#DA3831',
+  'St Louis':       '#DA3831',
+  'Vancouver':      '#00245E',
+  'Whitecaps':      '#00245E',
+};
+
+function colorizeScore(scoreStr) {
+  // Replace each team name found in the string with a colored span
+  let result = scoreStr;
+  // Sort by length desc so longer names match before shorter ones (e.g. "Real Salt Lake" before "Salt Lake")
+  const names = Object.keys(MLS_COLORS).sort((a, b) => b.length - a.length);
+  const used = new Set();
+  for (const name of names) {
+    if (used.has(MLS_COLORS[name])) continue; // only color each team once per line
+    const regex = new RegExp('\\b' + name.replace('.', '\\.') + '\\b', 'g');
+    if (regex.test(result)) {
+      result = result.replace(new RegExp('\\b' + name.replace('.', '\\.') + '\\b', 'g'),
+        `<span style="color:${MLS_COLORS[name]}">${name}</span>`);
+      used.add(MLS_COLORS[name]);
+    }
+  }
+  return result;
+}
+
+function parseArticle(raw, targetEl) {
+  // Split into lines, process each
+  const lines = raw.split('\n');
+  let html = '';
+  const embedList = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) { html += ''; continue; }
+
+    // Collect multi-line embeds (e.g. blockquote that spans lines)
+    let fullLine = line;
+    // If a line starts an embed key but doesn't close it, keep joining
+    if (/^EMBED:\s*/i.test(fullLine)) {
+      let embedContent = fullLine.replace(/^EMBED:\s*/i, '').trim();
+      // Keep joining lines until we have balanced tags or a full URL
+      while (i + 1 < lines.length) {
+        const next = lines[i + 1].trim();
+        if (!next) break;
+        // If it looks like continuation of embed (no new KEY: prefix)
+        if (!/^(HEADLINE|SUBHEADING|SUB-SUBHEADING|EMBED):/i.test(next)) {
+          embedContent += ' ' + next;
+          i++;
+          // Stop if we've closed all open tags
+          const opens  = (embedContent.match(/<[a-z][^\/]/gi)||[]).length;
+          const closes = (embedContent.match(/<\/[a-z]/gi)||[]).length;
+          if (opens > 0 && opens <= closes) break;
+          if (!embedContent.includes('<') && !embedContent.includes('>')) break;
+        } else break;
+      }
+      fullLine = 'EMBED: ' + embedContent;
+    }
+
+    // Process inline **bold** markdown before tag detection
+    function applyBold(str) {
+      return str.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    }
+
+    if (/^HEADLINE:\s*/i.test(fullLine)) {
+      const text = fullLine.replace(/^HEADLINE:\s*/i, '').trim();
+      html += `<div class="art-headline">${applyBold(text)}</div>`;
+    } else if (/^SUB-SUBHEADING:\s*/i.test(fullLine)) {
+      const text = fullLine.replace(/^SUB-SUBHEADING:\s*/i, '').trim();
+      html += `<div class="art-subsubheading">${applyBold(text)}</div>`;
+    } else if (/^SUBHEADING:\s*/i.test(fullLine)) {
+      const text = fullLine.replace(/^SUBHEADING:\s*/i, '').trim();
+      html += `<div class="art-subheading">${applyBold(text)}</div>`;
+    } else if (/^EMBED:\s*/i.test(fullLine)) {
+      let embed = fullLine.replace(/^EMBED:\s*/i, '').trim();
+      const embedId = 'embed-' + embedList.length;
+      embedList.push(embed);
+      html += `<div class="art-embed" id="${embedId}"></div>`;
+    } else if (/^By /i.test(fullLine)) {
+      html += `<div class="art-byline">${applyBold(fullLine)}</div>`;
+    } else {
+      // Auto-bold + team-color score lines
+    let renderLine = fullLine;
+    if (/^[A-Z][A-Za-z\s\.]+\d+\s*[\(\-]/.test(renderLine) && renderLine.includes(':')) {
+      const scoreSection = renderLine.match(/^([^:]+:)/);
+      if (scoreSection) {
+        const colored = colorizeScore(scoreSection[1]);
+        renderLine = '<strong>' + colored + '</strong>' + renderLine.slice(scoreSection[1].length);
+      }
+    }
+    html += `<p>${applyBold(renderLine)}</p>`;
+    }
+  }
+
+    return { html, embedList };
+}
+
+function renderEmbeds(embedList, container) {
+  embedList.forEach(function(embed, i) {
+    const placeholder = container.querySelector('#embed-' + i);
+    if (!placeholder) return;
+
+    if (/^https?:\/\//i.test(embed) && !embed.includes('<')) {
+      // Plain URL — render as styled link
+      const a = document.createElement('a');
+      a.className = 'art-embed-link';
+      a.href = embed;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      a.textContent = '🔗 ' + embed;
+      placeholder.appendChild(a);
+    } else {
+      // HTML embed (iframe, blockquote, etc.)
+      // Use a temporary div to parse, then move nodes + execute scripts
+      const tmp = document.createElement('div');
+      tmp.innerHTML = embed;
+
+      // Move all non-script nodes into placeholder
+      Array.from(tmp.childNodes).forEach(function(node) {
+        if (node.nodeName !== 'SCRIPT') {
+          placeholder.appendChild(node.cloneNode(true));
+        }
+      });
+
+      // Re-create and append script nodes so they actually execute
+      tmp.querySelectorAll('script').forEach(function(oldScript) {
+        const s = document.createElement('script');
+        if (oldScript.src) {
+          s.src = oldScript.src;
+          s.async = true;
+          if (oldScript.charset) s.charset = oldScript.charset;
+        } else {
+          s.textContent = oldScript.textContent;
+        }
+        document.body.appendChild(s);
+      });
+    }
+  });
+
+  // After all embeds injected, trigger Twitter widget load if present
+  setTimeout(function() {
+    if (window.twttr && window.twttr.widgets) {
+      window.twttr.widgets.load();
+    }
+  }, 300);
+}
+
+function saveArticles() { localStorage.setItem(ART_KEY, JSON.stringify(articles)); }
+
+function renderMatchday() {
+  const grid = document.getElementById('md-grid');
+  const published = Object.values(articles).filter(a => a.title && a.body).length;
+  document.getElementById('md-published-count').textContent = published;
+  document.getElementById('md-progress-bar').style.width = (published / 34 * 100) + '%';
+
+  grid.innerHTML = Array.from({length: 34}, (_, i) => {
+    const md = i + 1;
+    const art = articles[md];
+    const hasContent = art && art.title && art.body;
+    const excerpt = hasContent ? art.body.replace(/\n/g, ' ').slice(0, 120) + (art.body.length > 120 ? '…' : '') : '';
+    return `
+      <div class="md-card ${hasContent ? 'published' : 'placeholder'}" onclick="openArt(${md})">
+        <div class="md-card-header">
+          <span class="md-week-badge">MATCHDAY ${md}</span>
+          <span class="md-status ${hasContent ? 'live' : 'pending'}">${hasContent ? 'PUBLISHED' : 'PENDING'}</span>
+        </div>
+        <div class="md-title ${hasContent ? '' : 'placeholder-title'}">${hasContent ? art.title : 'Coming Soon'}</div>
+        ${hasContent ? `<div class="md-excerpt">${excerpt}</div>` : '<div class="md-excerpt" style="font-style:italic;opacity:.5">Coming soon.</div>'}
+        <div class="md-footer">
+          <span class="md-date">${hasContent && art.date ? art.date : '— / — / ——'}</span>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function openArt(md) {
+  artCurrentMD = md;
+  const art = articles[String(md)] || {};
+  const hasContent = art.title && art.body;
+
+  document.getElementById('art-week-label').textContent = `MATCHDAY ${md}`;
+  document.getElementById('art-view-title').textContent = hasContent ? art.title : `Matchday ${md} Report`;
+  document.getElementById('art-view-meta').textContent = hasContent && art.date ? `Published: ${art.date}` : 'Not yet published';
+
+  const contentEl = document.getElementById('art-view-content');
+  if (hasContent) {
+    const parsed = parseArticle(art.body);
+    contentEl.innerHTML = parsed.html;
+    contentEl.className = 'art-modal-content';
+    setTimeout(function() { renderEmbeds(parsed.embedList, contentEl); }, 50);
+  } else {
+    contentEl.innerHTML = '<div style="text-align:center;padding:40px 0;font-family:\'DM Mono\',monospace;font-size:12px;color:var(--text2);letter-spacing:1px">No report yet for this matchday.<br><br>Check back after matchday.</div>';
+    contentEl.className = 'art-modal-content';
+  }
+
+  document.getElementById('art-read-view').style.display = '';
+
+  document.getElementById('art-backdrop').classList.add('open');
+}
+
+
+
+
+
+function closeArt() { document.getElementById('art-backdrop').classList.remove('open'); artCurrentMD = null; }
+
+function closeArtIfBg(e) { if (e.target === document.getElementById('art-backdrop')) closeArt(); }
+
+// ════════════════════════ INIT ════════════════════════
+
+
+
+// Load default articles from hidden textarea store
+(function() {
+  try {
+    // HTML textarea is always the source of truth — always overrides localStorage
+    document.querySelectorAll('#article-data-store textarea[data-md]').forEach(function(ta) {
+      const k = String(ta.dataset.md);
+      articles[k] = { title: ta.dataset.title || '', date: ta.dataset.date || '', body: ta.value };
+    });
+    localStorage.setItem(ART_KEY, JSON.stringify(articles));
+  } catch(e) { console.warn('Article store load error:', e); }
+})();
+
+
+
+// ════════════════════════ GLOSSARY ════════════════════════
+function openGlossary(){
+  document.getElementById('glossary-modal').style.display='flex';
+}
+function closeGlossaryOutside(e){
+  if(e.target.id==='glossary-modal') document.getElementById('glossary-modal').style.display='none';
+}
+
+// ════════════════════════ PLAYER SEARCH ════════════════════════
+var _searchIdx = {}; // key -> active highlight index
+
+function buildSearchList(key) {
+  const out = players.filter(p => p.pos !== 'GK');
+  return out.map(p => ({ id: p.id, name: p.name, squad: p.squad, pos: p.pos }));
+}
+
+function filterPlayerSearch(key) {
+  const input = document.getElementById(key === 'sp' ? 'sp-search' : key + '-search');
+  const dropdown = document.getElementById(key === 'sp' ? 'sp-dropdown' : key + '-dropdown');
+  const q = input.value.trim().toLowerCase();
+  const list = buildSearchList(key);
+  const matches = q ? list.filter(p => p.name.toLowerCase().includes(q) || p.squad.toLowerCase().includes(q)) : list.slice(0, 50);
+  _searchIdx[key] = -1;
+  dropdown.innerHTML = matches.slice(0, 50).map((p, i) =>
+    `<div class="player-search-option" data-id="${p.id}" data-name="${p.name}" onmousedown="selectPlayer('${key}','${p.id}','${p.name.replace(/'/g,"\\'")}')">
+      ${p.name}<span>${p.squad} · ${p.pos}</span>
+    </div>`
+  ).join('') || '<div class="player-search-option" style="color:var(--text2)">No results</div>';
+  dropdown.classList.add('open');
+}
+
+function openPlayerSearch(key) {
+  filterPlayerSearch(key);
+}
+
+function blurPlayerSearch(key) {
+  setTimeout(() => {
+    const dropdown = document.getElementById(key === 'sp' ? 'sp-dropdown' : key + '-dropdown');
+    dropdown.classList.remove('open');
+  }, 200);
+}
+
+function keyPlayerSearch(e, key) {
+  const dropdown = document.getElementById(key === 'sp' ? 'sp-dropdown' : key + '-dropdown');
+  const opts = dropdown.querySelectorAll('.player-search-option[data-id]');
+  if (!opts.length) return;
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    _searchIdx[key] = Math.min((_searchIdx[key] || -1) + 1, opts.length - 1);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    _searchIdx[key] = Math.max((_searchIdx[key] || 0) - 1, 0);
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    const idx = _searchIdx[key] >= 0 ? _searchIdx[key] : 0;
+    if (opts[idx]) opts[idx].dispatchEvent(new Event('mousedown'));
+    return;
+  } else { return; }
+  opts.forEach((o, i) => o.classList.toggle('active', i === _searchIdx[key]));
+  if (opts[_searchIdx[key]]) opts[_searchIdx[key]].scrollIntoView({ block: 'nearest' });
+}
+
+function selectPlayer(key, id, name) {
+  document.getElementById(key === 'sp' ? 'sp-sel' : key).value = id;
+  const input = document.getElementById(key === 'sp' ? 'sp-search' : key + '-search');
+  if (input) input.value = name;
+  const dropdown = document.getElementById(key === 'sp' ? 'sp-dropdown' : key + '-dropdown');
+  if (dropdown) dropdown.classList.remove('open');
+  if (key === 'sp') renderSpotlight();
+  else renderCompare();
+}
+
+toggleGKFields();
+renderMatchday();
+refreshAll();
 </script>
-<!-- TLUSA-PLAYERS-END -->"""
-
-    html += block
-
-    with open(HTML, "w", encoding="utf-8") as f:
-        f.write(html)
-
-    print(f"\n  Written to {HTML}")
-    print("\n" + "="*50)
-    print("  Done! Hard-refresh your browser: Cmd+Shift+R")
-    print("="*50 + "\n")
+<div id="toast" style="position:fixed;bottom:28px;right:28px;z-index:2000;background:var(--accent);color:#0b2818;padding:12px 20px;border-radius:8px;font-family:'Exo 2',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;transform:translateY(80px);opacity:0;transition:all .3s"></div>
 
 
-if __name__ == "__main__":
-    main()
+<!-- ══════════ GLOSSARY MODAL ══════════ -->
+<div class="modal-backdrop" id="glossary-modal" onclick="closeGlossaryOutside(event)" style="display:none">
+  <div class="modal glossary-modal">
+    <div class="modal-title">STATS GLOSSARY</div>
+
+    <div class="glossary-section">
+      <div class="glossary-section-title">General</div>
+      <div class="glossary-grid">
+        <div class="glossary-item"><div class="glossary-abbr">90s</div><div class="glossary-def">Number of 90-minute games worth of minutes played. 1.0 = one full match.</div></div>
+        <div class="glossary-item"><div class="glossary-abbr">G+</div><div class="glossary-def">Goals Added — ASA's all-in-one value metric measuring how much a player increases their team's chance of scoring vs. conceding.</div></div>
+        <div class="glossary-item"><div class="glossary-abbr">ATK EFF</div><div class="glossary-def">Attacking Efficiency — Touchline USA composite score (0–100) weighting goals, xG, shots on target, assists, xAG, key passes, and Goals Added.</div></div>
+        <div class="glossary-item"><div class="glossary-abbr">DEF EFF</div><div class="glossary-def">Defensive Efficiency — Touchline USA composite score (0–100) using Goals Added and pass completion as defensive proxies.</div></div>
+      </div>
+    </div>
+
+    <div class="glossary-section">
+      <div class="glossary-section-title">Attacking Stats (per 90 min)</div>
+      <div class="glossary-grid">
+        <div class="glossary-item"><div class="glossary-abbr">GLS/90</div><div class="glossary-def">Goals scored per 90 minutes.</div></div>
+        <div class="glossary-item"><div class="glossary-abbr">xG/90</div><div class="glossary-def">Expected Goals per 90 — the quality of shots taken based on location, angle, and assist type. Higher = better chances.</div></div>
+        <div class="glossary-item"><div class="glossary-abbr">AST/90</div><div class="glossary-def">Assists per 90 minutes — passes directly leading to a goal.</div></div>
+        <div class="glossary-item"><div class="glossary-abbr">xAG/90</div><div class="glossary-def">Expected Assisted Goals per 90 — expected goals generated by a player's key passes, regardless of whether the shot scored.</div></div>
+        <div class="glossary-item"><div class="glossary-abbr">SoT/90</div><div class="glossary-def">Shots on Target per 90 — shots that would have gone in if not saved.</div></div>
+        <div class="glossary-item"><div class="glossary-abbr">KP/90</div><div class="glossary-def">Key Passes per 90 — passes that created a shot attempt.</div></div>
+      </div>
+    </div>
+
+    <div class="glossary-section">
+      <div class="glossary-section-title">Goals Added Breakdown</div>
+      <div class="glossary-grid">
+        <div class="glossary-item"><div class="glossary-abbr">SHOOTING</div><div class="glossary-def">G+ from shot quality and placement — above or below what's expected given shot location.</div></div>
+        <div class="glossary-item"><div class="glossary-abbr">PASSING</div><div class="glossary-def">G+ from pass quality — completing harder passes and creating dangerous opportunities.</div></div>
+        <div class="glossary-item"><div class="glossary-abbr">DRIBBLING</div><div class="glossary-def">G+ from carrying the ball — advancing play and beating defenders.</div></div>
+        <div class="glossary-item"><div class="glossary-abbr">RECEIVING</div><div class="glossary-def">G+ from how a player receives the ball — positioning and touch to retain possession in dangerous areas.</div></div>
+        <div class="glossary-item"><div class="glossary-abbr">FOULING</div><div class="glossary-def">G+ from foul behavior — drawing fouls in dangerous areas adds value; committing them subtracts it.</div></div>
+        <div class="glossary-item"><div class="glossary-abbr">INTERRUPT</div><div class="glossary-def">G+ from interrupting the opponent — tackles, interceptions, and blocks that disrupt attacks.</div></div>
+      </div>
+    </div>
+
+    <div class="glossary-section">
+      <div class="glossary-section-title">Goalkeeper Stats</div>
+      <div class="glossary-grid">
+        <div class="glossary-item"><div class="glossary-abbr">GK EFF</div><div class="glossary-def">GK Efficiency — Touchline USA composite score (0–100) combining Save%, GA/90, PSxG-GA, and Goals Added.</div></div>
+        <div class="glossary-item"><div class="glossary-abbr">SAVE%</div><div class="glossary-def">Percentage of shots on target that were saved.</div></div>
+        <div class="glossary-item"><div class="glossary-abbr">GA/90</div><div class="glossary-def">Goals Allowed per 90 minutes. Lower is better.</div></div>
+        <div class="glossary-item"><div class="glossary-abbr">PSxG-GA</div><div class="glossary-def">Post-Shot Expected Goals minus Goals Allowed — measures how many goals a keeper prevented beyond what was expected. Positive = above average.</div></div>
+        <div class="glossary-item"><div class="glossary-abbr">G+</div><div class="glossary-def">Goals Added above replacement for goalkeepers, accounting for shot-stopping, sweeping, passing, and claiming.</div></div>
+      </div>
+    </div>
+
+    <div class="glossary-section">
+      <div class="glossary-section-title">Salary & Value</div>
+      <div class="glossary-grid">
+        <div class="glossary-item"><div class="glossary-abbr">SALARY</div><div class="glossary-def">Guaranteed Compensation — base salary plus annualized signing bonuses. Published by the MLS Players Association (typically released in spring).</div></div>
+        <div class="glossary-item"><div class="glossary-abbr">g+/$M</div><div class="glossary-def">Goals Added per $1 million of guaranteed compensation — measures how much on-field value a player delivers per dollar spent. Higher = better value.</div></div>
+      </div>
+    </div>
+
+    <div style="text-align:right;margin-top:8px">
+      <button onclick="document.getElementById('glossary-modal').style.display='none'" style="background:none;border:1px solid rgba(57,255,110,0.3);color:var(--text2);font-family:'Exo 2',sans-serif;font-size:11px;letter-spacing:1px;padding:7px 18px;border-radius:6px;cursor:pointer">CLOSE</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
