@@ -1282,6 +1282,12 @@ function renderCompare(){
 
 // ════════════════════════ GOALKEEPERS ════════════════════════
 var gkView = 'simple';
+var gkSortCol = 'GK_Efficiency', gkSortDir = 'desc';
+function gkSort(col){
+  if(gkSortCol===col) gkSortDir=gkSortDir==='desc'?'asc':'desc'; else{gkSortCol=col;gkSortDir='desc';}
+  renderGK();
+}
+
 function setGKView(v){
   gkView = v;
   document.getElementById('gk-view-simple').classList.toggle('active', v==='simple');
@@ -1290,7 +1296,7 @@ function setGKView(v){
 }
 
 function renderGK(){
-  const gks=[...players.filter(p=>p.pos==='GK')].sort((a,b)=>(b.GK_Efficiency||0)-(a.GK_Efficiency||0));
+  const gks=[...players.filter(p=>p.pos==='GK')].sort((a,b)=>gkSortDir==='desc'?(b[gkSortCol]||0)-(a[gkSortCol]||0):(a[gkSortCol]||0)-(b[gkSortCol]||0));
   const has=gks.length>0;
   document.getElementById('gk-empty').style.display=has?'none':'block';
   document.getElementById('gk-content').style.display=has?'block':'none';
@@ -1358,8 +1364,14 @@ function renderGK(){
   // Table
   const simpleCols = ['#','PLAYER','TEAM','90s','SAVE%','GA TOTAL','GA/90','SAVES'];
   const advCols    = ['#','PLAYER','TEAM','90s','GK EFF','SAVE%','GA/90','PSxG-GA','G+','SALARY'];
-  document.getElementById('gk-thead').innerHTML=(isSimple?simpleCols:advCols)
-    .map(h=>`<th>${h}</th>`).join('');
+  const gkColDefs = isSimple
+    ? [{k:'#',l:'#'},{k:'name',l:'PLAYER'},{k:'squad',l:'TEAM'},{k:'nineties',l:'90s'},{k:'Save%',l:'SAVE%'},{k:'GA',l:'GA TOTAL'},{k:'GA_p90',l:'GA/90'},{k:'Saves_total',l:'SAVES'}]
+    : [{k:'#',l:'#'},{k:'name',l:'PLAYER'},{k:'squad',l:'TEAM'},{k:'nineties',l:'90s'},{k:'GK_Efficiency',l:'GK EFF'},{k:'Save%',l:'SAVE%'},{k:'GA_p90',l:'GA/90'},{k:'GA_minus_xGA',l:'PSxG-GA'},{k:'GK_Goals_Added',l:'G+'},{k:'guaranteed_comp',l:'SALARY'}];
+  document.getElementById('gk-thead').innerHTML=gkColDefs.map(c=>{
+    if(c.k==='#'||c.k==='name'||c.k==='squad'||c.k==='guaranteed_comp') return `<th>${c.l}</th>`;
+    const cl=gkSortCol===c.k?(gkSortDir==='desc'?'sort-desc':'sort-asc'):'';
+    return `<th class="${cl}" onclick="gkSort('${c.k}')" style="cursor:pointer">${c.l}</th>`;
+  }).join('');
 
   document.getElementById('gk-tbody').innerHTML=gks.map((p,i)=>{
     const nines = +p.nineties||0;
