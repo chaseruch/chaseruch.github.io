@@ -154,7 +154,6 @@ def main():
       return;
     }}
     players = _data;
-    computeRatings(players);
     refreshAll();
     console.log('[TLUSA] Loaded ' + players.length + ' players.');
   }}
