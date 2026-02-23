@@ -298,6 +298,19 @@ def main():
     gk_out.to_csv(gk_path, index=False)
     print(f"  Saved {len(gk_out)} goalkeepers → {gk_path.name}")
 
+    # ── Team data ────────────────────────────────────────────
+    print("\n[8/8] Fetching team data...")
+    try:
+        team_xg = asa.get_team_xgoals(leagues="mls", season_name=SEASON, stage_name="Regular Season")
+        print(f"  team_xgoals columns: {list(team_xg.columns)}")
+        print(f"  {len(team_xg)} teams")
+
+        game_xg = asa.get_game_xgoals(leagues="mls", season_name=SEASON, stage_name="Regular Season")
+        print(f"  game_xgoals columns: {list(game_xg.columns)}")
+        print(f"  {len(game_xg)} games")
+    except Exception as e:
+        print(f"  WARNING: {e}")
+
     # ── Preview ──────────────────────────────────────────────
     print(f"\n{div}")
     print("TOP ATTACKERS")
