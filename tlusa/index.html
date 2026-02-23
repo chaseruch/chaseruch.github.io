@@ -1057,8 +1057,8 @@ function renderRoster(){
   const isSimple = rsView === 'simple';
   const colspan = isSimple ? 10 : 13;
 
-  const simpleCols = [{k:'#',l:'#'},{k:'name',l:'PLAYER'},{k:'squad',l:'TEAM'},{k:'pos',l:'POS'},{k:'nineties',l:'90s'},{k:'Gls_total',l:'GOALS'},{k:'xG_total',l:'xG'},{k:'Ast_total',l:'SHOT AST'},{k:'xAG_total',l:'xAG'},{k:'SoT_total',l:'SHOTS OT'},{k:'KP_total',l:'KEY PASS'},{k:'',l:''}];
-  const advCols   = [{k:'#',l:'#'},{k:'name',l:'PLAYER'},{k:'squad',l:'TEAM'},{k:'pos',l:'POS'},{k:'nineties',l:'90s'},{k:'Attacking_Efficiency',l:'ATK EFF'},{k:'Defensive_Efficiency',l:'DEF EFF'},{k:'Goals_p90',l:'GLS/90'},{k:'xG_p90',l:'xG/90'},{k:'Assists_p90',l:'SHOT AST/90'},{k:'xAG_p90',l:'xAG/90'},{k:'SoT_p90',l:'SoT/90'},{k:'Goals_Added',l:'G+'},{k:'',l:''}];
+  const simpleCols = [{k:'#',l:'#'},{k:'name',l:'PLAYER'},{k:'squad',l:'TEAM'},{k:'pos',l:'POS'},{k:'nineties',l:'90s'},{k:'Gls_total',l:'GOALS'},{k:'xG_total',l:'xG'},{k:'Ast_total',l:'SHOT AST'},{k:'xAG_total',l:'xAG'},{k:'SoT_total',l:'SHOTS OT'},{k:'KP_total',l:'KEY PASS'}];
+  const advCols   = [{k:'#',l:'#'},{k:'name',l:'PLAYER'},{k:'squad',l:'TEAM'},{k:'pos',l:'POS'},{k:'nineties',l:'90s'},{k:'Attacking_Efficiency',l:'ATK EFF'},{k:'Defensive_Efficiency',l:'DEF EFF'},{k:'Goals_p90',l:'GLS/90'},{k:'xG_p90',l:'xG/90'},{k:'Assists_p90',l:'SHOT AST/90'},{k:'xAG_p90',l:'xAG/90'},{k:'SoT_p90',l:'SoT/90'},{k:'Goals_Added',l:'G+'}];
   const cols = isSimple ? simpleCols : advCols;
 
   document.getElementById('rs-thead').innerHTML=cols.map(c=>{
@@ -1082,10 +1082,7 @@ function renderRoster(){
       <td style="${mono}">${(p.xAG_total||0).toFixed(1)}</td>
       <td style="${mono}">${(p.SoT_total||0).toFixed(0)}</td>
       <td style="${mono}">${(p.KP_total||0).toFixed(0)}</td>
-      <td><div class="row-actions">
-        <button class="icon-btn edit-btn" onclick="event.stopPropagation();openModal('${p.id}')">✎</button>
-        <button class="icon-btn del-btn"  onclick="event.stopPropagation();quickDelete('${p.id}')">✕</button>
-      </div></td></tr>`
+      </tr>`
     : `<tr>
       <td style="color:var(--text2);${mono}">${i+1}</td>
       <td style="font-weight:500">${p.name}</td>
@@ -1100,10 +1097,7 @@ function renderRoster(){
       <td style="${mono}">${(p.xAG_p90||0).toFixed(2)}</td>
       <td style="${mono}">${(p.SoT_p90||0).toFixed(2)}</td>
       <td style="${mono};color:${(p.Goals_Added||0)>=0?'var(--accent)':'var(--red)'}">${(p.Goals_Added||0)>=0?'+':''}${(p.Goals_Added||0).toFixed(3)}</td>
-      <td><div class="row-actions">
-        <button class="icon-btn edit-btn" onclick="event.stopPropagation();openModal('${p.id}')">✎</button>
-        <button class="icon-btn del-btn"  onclick="event.stopPropagation();quickDelete('${p.id}')">✕</button>
-      </div></td></tr>`).join('');
+      </tr>`).join('');
 }
 
 function rsSort(col){
