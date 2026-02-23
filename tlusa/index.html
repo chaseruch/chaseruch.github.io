@@ -451,6 +451,12 @@ Seattle, Colorado - TBD</textarea>
 
   <!-- OVERVIEW -->
   <div id="tab-overview" class="tab-panel">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:14px">
+      <div class="view-toggle">
+        <button class="view-toggle-btn active" id="ov-view-simple" onclick="setOverviewView('simple')">SIMPLE</button>
+        <button class="view-toggle-btn" id="ov-view-advanced" onclick="setOverviewView('advanced')">ADVANCED</button>
+      </div>
+    </div>
     <div id="ov-empty" class="empty-state">
       <div class="empty-icon">⚽</div>
       <div class="empty-title">No Players Yet</div>
@@ -580,6 +586,12 @@ Seattle, Colorado - TBD</textarea>
           <div class="player-search-dropdown" id="cmp-b-dropdown"></div>
           <input type="hidden" id="cmp-b">
         </div></div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:14px">
+      <div class="view-toggle">
+        <button class="view-toggle-btn active" id="cmp-view-simple" onclick="setCmpView('simple')">SIMPLE</button>
+        <button class="view-toggle-btn" id="cmp-view-advanced" onclick="setCmpView('advanced')">ADVANCED</button>
+      </div>
     </div>
     <div class="grid2" style="margin-bottom:18px">
       <div class="card"><div class="card-title">Player A</div><div id="cmp-name-a" class="player-name-big">—</div><div id="cmp-meta-a" class="player-meta-sm" style="margin-bottom:14px">—</div><div id="cmp-stats-a"></div></div>
@@ -881,6 +893,13 @@ function refreshAll(){
 }
 
 // ════════════════════════ OVERVIEW ════════════════════════
+var ovView = 'simple';
+function setOverviewView(v){
+  ovView = v;
+  document.getElementById('ov-view-simple').classList.toggle('active', v==='simple');
+  document.getElementById('ov-view-advanced').classList.toggle('active', v==='advanced');
+  renderOverview();
+}
 function renderOverview(){
   const out=players.filter(p=>p.pos!=='GK'), gks=players.filter(p=>p.pos==='GK'), has=players.length>0;
   document.getElementById('ov-empty').style.display=has?'none':'block';
@@ -921,9 +940,14 @@ function renderOverview(){
   dc('scatter');
   if(out.length){const ctx=document.getElementById('chart-scatter').getContext('2d');
     const pc=p=>p.pos==='FW'?C.red:p.pos==='MF'?C.yellow:C.blue;
-    charts['scatter']=new Chart(ctx,{type:'scatter',data:{datasets:[{data:out.map(p=>({x:p.xG_p90||0,y:p.Goals_p90||0,player:p})),backgroundColor:out.map(p=>pc(p)+'cc'),borderColor:out.map(p=>pc(p)),pointRadius:7,pointHoverRadius:10}]},
-      options:{...baseOpts(),plugins:{...baseOpts().plugins,tooltip:{...baseOpts().plugins.tooltip,callbacks:{label:c=>{const p=c.raw.player;return[p.name+' ('+p.pos+')',`xG/90: ${(p.xG_p90||0).toFixed(2)}  Gls/90: ${(p.Goals_p90||0).toFixed(2)}`];}}}},
-      scales:{x:{...baseOpts().scales.x,title:{display:true,text:'xG per 90',color:C.text2,font:{family:"'DM Mono',monospace",size:11}}},y:{...baseOpts().scales.y,title:{display:true,text:'Goals per 90',color:C.text2,font:{family:"'DM Mono',monospace",size:11}}}}}});}
+    const xKey = isOvSimple ? 'xG_total' : 'xG_p90';
+    const yKey = isOvSimple ? 'Gls_total' : 'Goals_p90';
+    const xLabel = isOvSimple ? 'xG (season total)' : 'xG per 90';
+    const yLabel = isOvSimple ? 'Goals (season total)' : 'Goals per 90';
+    document.querySelector('#tab-overview .card:last-child .card-title').textContent = isOvSimple ? 'xG vs Goals — Season Totals' : 'xG vs Goals Per 90 — Scatter';
+    charts['scatter']=new Chart(ctx,{type:'scatter',data:{datasets:[{data:out.map(p=>({x:p[xKey]||0,y:p[yKey]||0,player:p})),backgroundColor:out.map(p=>pc(p)+'cc'),borderColor:out.map(p=>pc(p)),pointRadius:7,pointHoverRadius:10}]},
+      options:{...baseOpts(),plugins:{...baseOpts().plugins,tooltip:{...baseOpts().plugins.tooltip,callbacks:{label:c=>{const p=c.raw.player;return[p.name+' ('+p.pos+')',`${xLabel}: ${(p[xKey]||0).toFixed(2)}  ${yLabel}: ${(p[yKey]||0).toFixed(2)}`];}}}},
+      scales:{x:{...baseOpts().scales.x,title:{display:true,text:xLabel,color:C.text2,font:{family:"'DM Mono',monospace",size:11}}},y:{...baseOpts().scales.y,title:{display:true,text:yLabel,color:C.text2,font:{family:"'DM Mono',monospace",size:11}}}}}});}
 }
 
 // ════════════════════════ ROSTER ════════════════════════
@@ -1107,31 +1131,61 @@ function renderSpotlight(){
 }
 
 // ════════════════════════ COMPARE ════════════════════════
+var cmpView = 'simple';
+function setCmpView(v){
+  cmpView = v;
+  document.getElementById('cmp-view-simple').classList.toggle('active', v==='simple');
+  document.getElementById('cmp-view-advanced').classList.toggle('active', v==='advanced');
+  renderCompare();
+}
+
 function renderCompare(){
   const out=players.filter(p=>p.pos!=='GK'); if(out.length<2) return;
   const a=players.find(x=>x.id===document.getElementById('cmp-a').value);
   const b=players.find(x=>x.id===document.getElementById('cmp-b').value);
   if(!a||!b) return;
+
+  const isSimple = cmpView === 'simple';
+  const statRow = (l,v) => `<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)"><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text2)">${l}</span><span style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:${col};letter-spacing:1px">${v}</span></div>`;
+
   const fill=(sfx,p,col)=>{
     document.getElementById('cmp-name-'+sfx).textContent=p.name;
-    document.getElementById('cmp-meta-'+sfx).textContent=`${p.squad} · ${p.pos} · Age ${p.age||'—'}`;
-    document.getElementById('cmp-stats-'+sfx).innerHTML=[
-      {l:'ATK Efficiency',v:(p.Attacking_Efficiency||0).toFixed(1)},
-      {l:'DEF Efficiency',v:(p.Defensive_Efficiency||0).toFixed(1)},
-      {l:'Goals / 90',v:(p.Goals_p90||0).toFixed(2)},
-      {l:'xG / 90',v:(p.xG_p90||0).toFixed(2)},
-      {l:'Assists / 90',v:(p.Assists_p90||0).toFixed(2)},
-      {l:'xAG / 90',v:(p.xAG_p90||0).toFixed(2)},
-      {l:'SoT / 90',v:(p.SoT_p90||0).toFixed(2)},
-      {l:'Goals Added',v:(p.Goals_Added||0).toFixed(3)},
-      {l:'Salary',v:p.guaranteed_comp||'N/A'},
-      {l:'Value (g+/$M)',v:p.Value_per_M?(p.Value_per_M||0).toFixed(2):'N/A'},
-    ].map(s=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)"><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text2)">${s.l}</span><span style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:${col};letter-spacing:1px">${s.v}</span></div>`).join('');
+    document.getElementById('cmp-meta-'+sfx).textContent=`${p.squad} · ${p.pos} · ${(+p.nineties||0).toFixed(1)} × 90min`;
+    const simpleStats = [
+      {l:'Goals',        v:(p.Gls_total||0).toFixed(0)},
+      {l:'xG',           v:(p.xG_total||0).toFixed(1)},
+      {l:'Assists',      v:(p.Ast_total||0).toFixed(0)},
+      {l:'xAG',          v:(p.xAG_total||0).toFixed(1)},
+      {l:'Shots on Target', v:(p.SoT_total||0).toFixed(0)},
+      {l:'Key Passes',   v:(p.KP_total||0).toFixed(0)},
+      {l:'Minutes',      v:(p.Min_total||0).toFixed(0)},
+    ];
+    const advStats = [
+      {l:'ATK Efficiency',  v:(p.Attacking_Efficiency||0).toFixed(1)},
+      {l:'DEF Efficiency',  v:(p.Defensive_Efficiency||0).toFixed(1)},
+      {l:'Goals / 90',      v:(p.Goals_p90||0).toFixed(2)},
+      {l:'xG / 90',         v:(p.xG_p90||0).toFixed(2)},
+      {l:'Assists / 90',    v:(p.Assists_p90||0).toFixed(2)},
+      {l:'xAG / 90',        v:(p.xAG_p90||0).toFixed(2)},
+      {l:'SoT / 90',        v:(p.SoT_p90||0).toFixed(2)},
+      {l:'Goals Added',     v:(p.Goals_Added||0).toFixed(3)},
+      {l:'Salary',          v:p.guaranteed_comp||'N/A'},
+      {l:'Value (g+/$M)',   v:p.Value_per_M?(p.Value_per_M||0).toFixed(2):'N/A'},
+    ];
+    document.getElementById('cmp-stats-'+sfx).innerHTML=(isSimple ? simpleStats : advStats)
+      .map(s=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)"><span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text2)">${s.l}</span><span style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:${col};letter-spacing:1px">${s.v}</span></div>`).join('');
   };
   fill('a',a,C.accent); fill('b',b,C.red);
+
   dc('cmp');
-  const ms=['Goals_p90','xG_p90','Assists_p90','xAG_p90','SoT_p90','Tkl_Won_p90','Interceptions_p90','Pressures_p90'];
-  const ml=['Gls/90','xG/90','Ast/90','xAG/90','SoT/90','Tkl/90','Int/90','Press/90'];
+  const ms = isSimple
+    ? ['Gls_total','xG_total','Ast_total','xAG_total','SoT_total','KP_total']
+    : ['Goals_p90','xG_p90','Assists_p90','xAG_p90','SoT_p90','Goals_Added'];
+  const ml = isSimple
+    ? ['Goals','xG','Assists','xAG','SoT','Key Passes']
+    : ['Gls/90','xG/90','Ast/90','xAG/90','SoT/90','G+'];
+  const chartTitle = isSimple ? 'Head-to-Head Season Totals' : 'Head-to-Head Per-90';
+  document.querySelector('#tab-compare .card:last-child .card-title').textContent = chartTitle;
   charts['cmp']=new Chart(document.getElementById('chart-cmp').getContext('2d'),{type:'bar',
     data:{labels:ml,datasets:[
       {label:a.name,data:ms.map(m=>a[m]||0),backgroundColor:C.accent+'99',borderColor:C.accent,borderWidth:1,borderRadius:4},
