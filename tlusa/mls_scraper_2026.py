@@ -282,6 +282,9 @@ def main():
 
     GK_COLS = [
         "Player", "Squad", "Pos", "Min", "90s",
+        # Raw totals (Simple view)
+        "GA", "Saves", "SoTA",
+        # Advanced
         "GK_Efficiency", "GA_p90", "Save%", "GA_minus_xGA",
         "GK_Goals_Added", "Base_Salary", "Guaranteed_Comp",
     ]
