@@ -230,7 +230,36 @@ def main():
 </script>
 <!-- TLUSA-PLAYERS-END -->"""
 
+    teams_block = f"""
+
+<!-- TLUSA-TEAMS-START -->
+<script>
+(function() {{
+  var _teams = {teams_json};
+  var _traj  = {traj_json};
+
+  function tryLoadTeams() {{
+    if (typeof teamsData === 'undefined' || typeof trajData === 'undefined') {{
+      setTimeout(tryLoadTeams, 100);
+      return;
+    }}
+    teamsData = _teams;
+    trajData  = _traj;
+    if (typeof renderTeams === 'function') renderTeams();
+    console.log('[TLUSA] Loaded ' + _teams.length + ' teams.');
+  }}
+
+  if (document.readyState === 'loading') {{
+    document.addEventListener('DOMContentLoaded', function() {{ setTimeout(tryLoadTeams, 100); }});
+  }} else {{
+    setTimeout(tryLoadTeams, 100);
+  }}
+}})();
+</script>
+<!-- TLUSA-TEAMS-END -->"""
+
     html += block
+    html += teams_block
 
     with open(HTML, "w", encoding="utf-8") as f:
         f.write(html)
