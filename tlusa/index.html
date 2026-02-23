@@ -532,7 +532,7 @@ EMBED: <blockquote class="twitter-tweet" data-media-max-width="560"><p lang="en"
     <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:18px">
       <div class="ctrl-group">
         <span class="ctrl-label">Sort By</span>
-        <select id="rs-sort" onchange="renderRoster()">
+        <select id="rs-sort" onchange="rsSortCol=this.value;rsSortDir='desc';renderRoster()">
           <option value="Gls_total">Goals</option>
           <option value="Ast_total">Shot Assists</option>
           <option value="xG_total">xG</option>
@@ -1048,12 +1048,11 @@ function setRosterView(v){
 }
 
 function renderRoster(){
-  const sb=document.getElementById('rs-sort').value;
   let data=players.filter(p=>p.pos!=='GK');
   const pos=document.getElementById('rs-pos').value, team=document.getElementById('rs-team').value;
   if(pos!=='ALL') data=data.filter(p=>p.pos===pos);
   if(team!=='ALL') data=data.filter(p=>p.squad===team);
-  data.sort((a,b)=>rsSortDir==='desc'?(b[sb]||0)-(a[sb]||0):(a[sb]||0)-(b[sb]||0));
+  data.sort((a,b)=>rsSortDir==='desc'?(b[rsSortCol]||0)-(a[rsSortCol]||0):(a[rsSortCol]||0)-(b[rsSortCol]||0));
 
   const isSimple = rsView === 'simple';
   const colspan = isSimple ? 10 : 13;
@@ -1109,7 +1108,7 @@ function renderRoster(){
 
 function rsSort(col){
   if(rsSortCol===col) rsSortDir=rsSortDir==='desc'?'asc':'desc'; else{rsSortCol=col;rsSortDir='desc';}
-  document.getElementById('rs-sort').value=col; renderRoster();
+  renderRoster();
 }
 
 // ════════════════════════ SPOTLIGHT ════════════════════════
