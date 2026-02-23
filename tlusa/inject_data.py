@@ -99,7 +99,7 @@ def main():
         html = f.read()
 
     # Update the stats date in the header
-    today = date.today().strftime('%-m/%-d/%y')
+    today = date.today().strftime('%m/%d/%y').lstrip('0').replace('/0','/')
     html = re.sub(r'STATS AS OF \d+/\d+/\d+', f'STATS AS OF {today}', html)
     print(f"  Date updated to {today}")
 
@@ -137,6 +137,10 @@ def main():
 }})();
 </script>
 <!-- TLUSA-PLAYERS-END -->"""
+
+    if not all_players:
+        print("\n  ERROR: No players loaded from CSVs — aborting to avoid wiping index.html")
+        return
 
     html += block
 
