@@ -69,6 +69,10 @@ def csv_to_players(path, is_gk=False):
             p["Save%"]          = float(g("Save%", 0) or 0)
             p["GA_minus_xGA"]   = float(g("GA_minus_xGA", 0) or 0)
             p["GK_Goals_Added"] = float(g("GK_Goals_Added", 0) or 0)
+            # Raw totals for Simple view
+            p["GA_total"]       = float(g("GA", 0) or 0)
+            p["Saves_total"]    = float(g("Saves", 0) or 0)
+            p["SoTA_total"]     = float(g("SoTA", 0) or 0)
         else:
             gls = float(g("Goals_p90", 0) or 0)
             xg  = float(g("xG_p90", 0) or 0)
