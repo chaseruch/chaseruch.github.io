@@ -91,47 +91,42 @@ def main():
     with open(HTML, "r", encoding="utf-8") as f:
         html = f.read()
 
-    # Build the data island
+    # ── Remove any previously injected blocks ──────────────────
+    html = re.sub(r'<!-- PLAYER-DATA-START -->.*?<!-- PLAYER-DATA-END -->\n?', '', html, flags=re.DOTALL)
+
+    # ── Build data + loader block ──────────────────────────────
     players_json = json.dumps(all_players, ensure_ascii=False)
-    data_island = f'\n<div id="player-data-store" style="display:none" data-players=\'{players_json}\'></div>\n'
 
-    # Remove any existing player data island
-    html = re.sub(r'\n<div id="player-data-store"[^>]*>.*?</div>\n', '\n', html, flags=re.DOTALL)
-
-    # Insert just before </body>
-    html = html.replace('</body>', data_island + '</body>')
-
-    # Inject loader JS if not already present
-    loader = """
-// Load players from injected data island
-(function() {
-  try {
-    const store = document.getElementById('player-data-store');
-    if (!store) return;
-    const data = JSON.parse(store.dataset.players || '[]');
-    if (!data.length) return;
+    inject_block = f"""<!-- PLAYER-DATA-START -->
+<script id="player-data-store" type="application/json">
+{players_json}
+</script>
+<script>
+(function() {{
+  try {{
+    var raw = document.getElementById('player-data-store').textContent;
+    var data = JSON.parse(raw);
+    if (!data || !data.length) return;
     players = data;
     computeRatings(players);
     refreshAll();
-  } catch(e) { console.warn('Player store load error:', e); }
-})();"""
+    console.log('Loaded ' + data.length + ' players from CSV data.');
+  }} catch(e) {{ console.warn('Player store load error:', e); }}
+}})();
+</script>
+<!-- PLAYER-DATA-END -->
+"""
 
-    # Remove old loader if present
-    html = re.sub(r'\n// Load players from injected data island.*?\}\)\(\);', '', html, flags=re.DOTALL)
-
-    # Insert loader just before the closing </script> of the main script block
-    html = html.replace(
-        'toggleGKFields();\nrenderMatchday();\nrefreshAll();',
-        'toggleGKFields();\nrenderMatchday();\nrefreshAll();\n' + loader
-    )
+    # ── Append block right at the end of the file ─────────────
+    html = html.rstrip() + "\n" + inject_block
 
     # Write back
     with open(HTML, "w", encoding="utf-8") as f:
         f.write(html)
 
-    print(f"\n  Injected into {HTML.name}")
+    print(f"\n  Injected {len(all_players)} players into {HTML.name}")
     print("\n" + "=" * 50)
-    print("  Done! Open index.html in your browser.")
+    print("  Done! Refresh index.html in your browser.")
     print("=" * 50 + "\n")
 
 
