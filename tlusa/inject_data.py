@@ -10,6 +10,7 @@ Run after scraping:
 
 import json
 import re
+from datetime import date
 from pathlib import Path
 import pandas as pd
 
@@ -96,6 +97,11 @@ def main():
 
     with open(HTML, "r", encoding="utf-8") as f:
         html = f.read()
+
+    # Update the stats date in the header
+    today = date.today().strftime('%-m/%-d/%y')
+    html = re.sub(r'STATS AS OF \d+/\d+/\d+', f'STATS AS OF {today}', html)
+    print(f"  Date updated to {today}")
 
     # Strip any previous injection
     html = re.sub(r'<!-- TLUSA-PLAYERS-START -->.*?<!-- TLUSA-PLAYERS-END -->', '',
