@@ -215,6 +215,9 @@ def main():
 
     OUT_COLS = [
         "Player", "Squad", "Pos", "Min", "90s",
+        # Raw totals (Simple view)
+        "Gls", "xG", "Ast", "xAG", "SoT", "KP",
+        # Per-90 (Advanced view)
         "Attacking_Efficiency", "Defensive_Efficiency",
         "Goals_p90", "xG_p90", "Assists_p90", "xAG_p90",
         "SoT_p90", "KeyPasses_p90", "Goals_Added",
