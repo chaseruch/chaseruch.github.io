@@ -257,11 +257,10 @@ def main():
     gk = gk.rename(columns={
         "player_name":                   "Player",
         "minutes_played":                "Min",
-        "goals_against":                 "GA",
-        "shots_on_target_against":       "SoTA",
+        "goals_conceded":                "GA",
+        "shots_faced":                   "SoTA",
         "saves":                         "Saves",
-        "save_percentage":               "Save%",
-        "goals_against_xgoals":          "GA_minus_xGA",
+        "goals_minus_xgoals_gk":         "GA_minus_xGA",
         "goals_added_above_replacement": "GK_Goals_Added",
         "base_salary":                   "Base_Salary",
         "guaranteed_compensation":       "Guaranteed_Comp",
@@ -272,6 +271,8 @@ def main():
     gk["90s"]    = (gk_mins / 90).round(2)
     gk["GA_p90"] = (safe(gk, "GA") / gk_nines).round(3)
     gk["Pos"]    = "GK"
+    # Calculate Save% from saves and shots faced
+    gk["Save%"]  = (safe(gk, "Saves") / safe(gk, "SoTA").clip(lower=0.01) * 100).round(1)
 
 
 
