@@ -73,7 +73,6 @@ def csv_to_players(path, is_gk=False):
             p["GA_total"]       = float(g("GA", 0) or 0)
             p["Saves_total"]    = float(g("Saves", 0) or 0)
             p["SoTA_total"]     = float(g("SoTA", 0) or 0)
-            p["CS_total"]       = float(g("CS", 0) or 0)
         else:
             gls = float(g("Goals_p90", 0) or 0)
             xg  = float(g("xG_p90", 0) or 0)
