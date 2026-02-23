@@ -88,6 +88,14 @@ def csv_to_players(path, is_gk=False):
             p["Value_per_M"]   = float(g("Value_per_M", 0) or 0)
             p["Tkl_Won_p90"]   = 0.0
             p["Interceptions_p90"] = 0.0
+            # Raw totals for Simple view
+            p["Gls_total"] = float(g("Gls", 0) or 0)
+            p["xG_total"]  = float(g("xG", 0) or 0)
+            p["Ast_total"] = float(g("Ast", 0) or 0)
+            p["xAG_total"] = float(g("xAG", 0) or 0)
+            p["SoT_total"] = float(g("SoT", 0) or 0)
+            p["KP_total"]  = float(g("KP", 0) or 0)
+            p["Min_total"] = float(g("Min", 0) or 0)
             # Goals Added by action type
             p["ga_shooting"]     = float(g("ga_shooting", 0) or 0)
             p["ga_passing"]      = float(g("ga_passing", 0) or 0)
