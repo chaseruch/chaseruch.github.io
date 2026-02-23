@@ -138,6 +138,9 @@ def main():
     # ══════════════════ OUTFIELD ══════════════════
     print("\nBuilding outfield dataset...")
 
+    print(f"  xG columns: {list(xg.columns)}")
+    if "assists" in xg.columns: print(f"  assists sample: {xg['assists'].describe()}")
+    else: print("  WARNING: no 'assists' column in xG data")
     df = xg.merge(players, on="player_id", how="left")
 
     xp_cols = [c for c in xp.columns if c not in df.columns or c == "player_id"]
