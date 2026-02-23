@@ -273,20 +273,7 @@ def main():
     gk["GA_p90"] = (safe(gk, "GA") / gk_nines).round(3)
     gk["Pos"]    = "GK"
 
-    # Print available columns so we can see what ASA provides
-    print(f"  GK raw columns: {list(gk.columns)}")
 
-    # Clean sheets: use count_games if available, else estimate from GA/90
-    # (a 90-min game with 0 GA = 1 CS; approximated as games where GA rate implies 0 conceded)
-    if "count_games" in gk.columns:
-        games = safe(gk, "count_games")
-        gk["CS"] = ((games - safe(gk, "GA")).clip(lower=0)).round(0).astype(int)
-    else:
-        # Estimate: games played × chance of keeping a clean sheet (exponential decay of GA rate)
-        import numpy as np
-        ga_rate = safe(gk, "GA") / gk_nines  # GA per 90
-        games_est = gk_nines  # 90s ≈ games
-        gk["CS"] = (games_est * np.exp(-ga_rate)).round(0).astype(int)
 
     gk["GK_Efficiency"] = (
         nm(safe(gk, "Save%"))              * 0.30 +
@@ -298,7 +285,7 @@ def main():
     GK_COLS = [
         "Player", "Squad", "Pos", "Min", "90s",
         # Raw totals (Simple view)
-        "GA", "Saves", "SoTA", "CS",
+        "GA", "Saves", "SoTA",
         # Advanced
         "GK_Efficiency", "GA_p90", "Save%", "GA_minus_xGA",
         "GK_Goals_Added", "Base_Salary", "Guaranteed_Comp",
