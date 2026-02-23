@@ -20,6 +20,18 @@ OUT_CSV = DIR / "mls_outfield_efficiency.csv"
 GK_CSV  = DIR / "mls_gk_efficiency.csv"
 
 
+def fmt_salary(v):
+    """Format salary as $1.23M or $450K"""
+    if not v or v == 0:
+        return None
+    v = float(v)
+    if v >= 1_000_000:
+        return f"${v/1_000_000:.2f}M"
+    elif v >= 1_000:
+        return f"${v/1_000:.0f}K"
+    return f"${v:.0f}"
+
+
 def csv_to_players(path, is_gk=False):
     if not path.exists():
         print(f"  WARNING: {path.name} not found")
@@ -43,23 +55,29 @@ def csv_to_players(path, is_gk=False):
             "nation":   str(g("Nation", "")),
             "nineties": float(g("90s", 0) or 0),
             "isGK":     is_gk,
+            # Salary
+            "base_salary":      fmt_salary(g("Base_Salary", 0)),
+            "guaranteed_comp":  fmt_salary(g("Guaranteed_Comp", 0)),
+            "base_salary_raw":  float(g("Base_Salary", 0) or 0),
+            "guaranteed_comp_raw": float(g("Guaranteed_Comp", 0) or 0),
         }
+
         if is_gk:
-            p["GK_Efficiency"] = float(g("GK_Efficiency", 0) or 0)
-            p["GA_p90"]        = float(g("GA_p90", 0) or 0)
-            p["Save_pct"]      = float(g("Save%", 0) or 0)
-            p["GA_minus_xGA"]  = float(g("GA_minus_xGA", 0) or 0)
+            p["GK_Efficiency"]  = float(g("GK_Efficiency", 0) or 0)
+            p["GA_p90"]         = float(g("GA_p90", 0) or 0)
+            p["Save_pct"]       = float(g("Save%", 0) or 0)
+            p["Save%"]          = float(g("Save%", 0) or 0)
+            p["GA_minus_xGA"]   = float(g("GA_minus_xGA", 0) or 0)
+            p["GK_Goals_Added"] = float(g("GK_Goals_Added", 0) or 0)
         else:
-            ae = float(g("Attacking_Efficiency", 0) or 0)
-            de = float(g("Defensive_Efficiency", 0) or 0)
             gls = float(g("Goals_p90", 0) or 0)
             xg  = float(g("xG_p90", 0) or 0)
             ast = float(g("Assists_p90", 0) or 0)
             xag = float(g("xAG_p90", 0) or 0)
             sot = float(g("SoT_p90", 0) or 0)
             kp  = float(g("KeyPasses_p90", 0) or 0)
-            p["Attacking_Efficiency"] = ae
-            p["Defensive_Efficiency"] = de
+            p["Attacking_Efficiency"] = float(g("Attacking_Efficiency", 0) or 0)
+            p["Defensive_Efficiency"] = float(g("Defensive_Efficiency", 0) or 0)
             p["Goals_p90"]     = gls
             p["xG_p90"]        = xg
             p["Assists_p90"]   = ast
@@ -67,9 +85,17 @@ def csv_to_players(path, is_gk=False):
             p["SoT_p90"]       = sot
             p["KeyPasses_p90"] = kp
             p["Goals_Added"]   = float(g("Goals_Added", 0) or 0)
+            p["Value_per_M"]   = float(g("Value_per_M", 0) or 0)
             p["Tkl_Won_p90"]   = 0.0
             p["Interceptions_p90"] = 0.0
-            # aliases used by dashboard rendering
+            # Goals Added by action type
+            p["ga_shooting"]     = float(g("ga_shooting", 0) or 0)
+            p["ga_passing"]      = float(g("ga_passing", 0) or 0)
+            p["ga_dribbling"]    = float(g("ga_dribbling", 0) or 0)
+            p["ga_receiving"]    = float(g("ga_receiving", 0) or 0)
+            p["ga_fouling"]      = float(g("ga_fouling", 0) or 0)
+            p["ga_interrupting"] = float(g("ga_interrupting", 0) or 0)
+            # aliases
             p["Gls"] = gls
             p["xG"]  = xg
             p["Ast"] = ast
@@ -95,15 +121,19 @@ def main():
     all_players = outfield + gks
     print(f"  {len(outfield)} outfield  |  {len(gks)} GKs  |  {len(all_players)} total")
 
+    if not all_players:
+        print("\n  ERROR: No players loaded — aborting to avoid wiping index.html")
+        return
+
     with open(HTML, "r", encoding="utf-8") as f:
         html = f.read()
 
-    # Update the stats date in the header
+    # Update stats date
     today = date.today().strftime('%m/%d/%y').lstrip('0').replace('/0','/')
     html = re.sub(r'STATS AS OF \d+/\d+/\d+', f'STATS AS OF {today}', html)
     print(f"  Date updated to {today}")
 
-    # Strip any previous injection
+    # Strip previous injection
     html = re.sub(r'<!-- TLUSA-PLAYERS-START -->.*?<!-- TLUSA-PLAYERS-END -->', '',
                   html, flags=re.DOTALL).rstrip()
 
@@ -137,10 +167,6 @@ def main():
 }})();
 </script>
 <!-- TLUSA-PLAYERS-END -->"""
-
-    if not all_players:
-        print("\n  ERROR: No players loaded from CSVs — aborting to avoid wiping index.html")
-        return
 
     html += block
 
