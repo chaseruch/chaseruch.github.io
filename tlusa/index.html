@@ -468,7 +468,7 @@ Seattle, Colorado - TBD</textarea>
         <div class="card"><div class="card-title">Attacking Efficiency — Top 15</div><div class="chart-wrap tall"><canvas id="chart-atk"></canvas></div></div>
         <div class="card"><div class="card-title red">Defensive Efficiency — Top 15</div><div class="chart-wrap tall"><canvas id="chart-def"></canvas></div></div>
       </div>
-      <div class="card" style="margin-bottom:18px"><div class="card-title">xG vs Goals Per 90 — Scatter</div><div class="chart-wrap tall"><canvas id="chart-scatter"></canvas></div></div>
+      <div class="card" style="margin-bottom:18px"><div class="card-title" id="ov-scatter-title">xG vs Goals Per 90 — Scatter</div><div class="chart-wrap tall"><canvas id="chart-scatter"></canvas></div></div>
     </div>
   </div>
 
@@ -597,7 +597,7 @@ Seattle, Colorado - TBD</textarea>
       <div class="card"><div class="card-title">Player A</div><div id="cmp-name-a" class="player-name-big">—</div><div id="cmp-meta-a" class="player-meta-sm" style="margin-bottom:14px">—</div><div id="cmp-stats-a"></div></div>
       <div class="card"><div class="card-title red">Player B</div><div id="cmp-name-b" class="player-name-big">—</div><div id="cmp-meta-b" class="player-meta-sm" style="margin-bottom:14px">—</div><div id="cmp-stats-b"></div></div>
     </div>
-    <div class="card"><div class="card-title">Head-to-Head Per-90</div><div class="chart-wrap tall"><canvas id="chart-cmp"></canvas></div></div>
+    <div class="card"><div class="card-title" id="cmp-chart-title">Head-to-Head Per-90</div><div class="chart-wrap tall"><canvas id="chart-cmp"></canvas></div></div>
   </div>
 
   <!-- GOALKEEPERS -->
@@ -906,48 +906,75 @@ function renderOverview(){
   document.getElementById('ov-content').style.display=has?'block':'none';
   if(!has) return;
 
+  const isSimple = ovView === 'simple';
+
+  // Sort arrays for both views
   const byA=[...out].sort((a,b)=>(b.Attacking_Efficiency||0)-(a.Attacking_Efficiency||0));
   const byD=[...out].sort((a,b)=>(b.Defensive_Efficiency||0)-(a.Defensive_Efficiency||0));
   const byG=[...gks].sort((a,b)=>(b.GK_Efficiency||0)-(a.GK_Efficiency||0));
+  const byGls=[...out].sort((a,b)=>(b.Gls_total||0)-(a.Gls_total||0));
+  const byAst=[...out].sort((a,b)=>(b.Ast_total||0)-(a.Ast_total||0));
+  const byXg=[...out].sort((a,b)=>(b.xG_total||0)-(a.xG_total||0));
+  const byKp=[...out].sort((a,b)=>(b.KP_total||0)-(a.KP_total||0));
 
-  document.getElementById('ov-heroes').innerHTML=[
-    {p:byA[0],l:'Top Attacker',  e:'Attacking_Efficiency',bar:'eff-atk',vc:'var(--yellow)'},
-    {p:byD[0],l:'Top Defender',  e:'Defensive_Efficiency',bar:'eff-def',vc:'#93c5fd'},
-    {p:byG[0],l:'Top Goalkeeper',e:'GK_Efficiency',        bar:'eff-gk', vc:'var(--yellow)'},
-  ].map(h=>{
-    if(!h.p) return `<div class="card"><div class="card-title">${h.l}</div><div style="color:var(--text2);font-family:'DM Mono',monospace;font-size:12px">None added yet</div></div>`;
-    const v=h.p[h.e]||0;
+  // Hero cards — simple shows top scorer/assister/gk, advanced shows efficiency leaders
+  const heroes = isSimple ? [
+    {p:byGls[0], l:'Top Scorer',    stat:(p)=>`${(p.Gls_total||0).toFixed(0)} Goals`,       vc:'var(--red)'},
+    {p:byAst[0], l:'Top Assister',  stat:(p)=>`${(p.Ast_total||0).toFixed(0)} Assists`,      vc:'var(--yellow)'},
+    {p:byG[0],   l:'Top Goalkeeper',stat:(p)=>`${(p['Save%']||0).toFixed(1)}% Save%`,        vc:'var(--yellow)'},
+  ] : [
+    {p:byA[0], l:'Top Attacker',   stat:(p)=>`${(p.Attacking_Efficiency||0).toFixed(1)} ATK EFF`, vc:'var(--yellow)'},
+    {p:byD[0], l:'Top Defender',   stat:(p)=>`${(p.Defensive_Efficiency||0).toFixed(1)} DEF EFF`, vc:'#93c5fd'},
+    {p:byG[0], l:'Top Goalkeeper', stat:(p)=>`${(p.GK_Efficiency||0).toFixed(1)} GK EFF`,         vc:'var(--yellow)'},
+  ];
+
+  document.getElementById('ov-heroes').innerHTML=heroes.map(h=>{
+    if(!h.p) return `<div class="card"><div class="card-title">${h.l}</div><div style="color:var(--text2);font-family:'DM Mono',monospace;font-size:12px">None yet</div></div>`;
     return `<div class="card"><div class="card-title">${h.l}</div>
       <div class="player-name-big" style="font-size:20px">${h.p.name}</div>
       <div class="player-meta-sm">${h.p.squad} · ${h.p.pos}</div>
-      <div style="margin-top:12px">
-        <div style="display:flex;justify-content:space-between;margin-bottom:5px">
-          <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text2);letter-spacing:1px">EFFICIENCY</span>
-          <span style="font-family:'DM Mono',monospace;font-size:12px;color:${h.vc}">${v.toFixed(1)}</span>
-        </div>
-        <div class="eff-track"><div class="eff-fill ${h.bar}" style="width:${v}%"></div></div>
-      </div></div>`;
+      <div style="margin-top:10px;font-family:'Bebas Neue',sans-serif;font-size:28px;color:${h.vc};letter-spacing:2px">${h.stat(h.p)}</div>
+    </div>`;
   }).join('');
 
+  // Chart 1: Goals leaders (simple) vs ATK Efficiency (advanced)
+  const atkData = isSimple ? byGls.slice(0,15) : byA.slice(0,15);
+  const atkVals = isSimple ? atkData.map(p=>p.Gls_total||0) : atkData.map(p=>p.Attacking_Efficiency||0);
+  const atkTitle = isSimple ? 'Top Scorers — Season Goals' : 'Attacking Efficiency — Top 15';
+  document.querySelector('#tab-overview .grid2 .card:first-child .card-title').textContent = atkTitle;
   dc('atk');
-  if(byA.length){const top=byA.slice(0,15),ctx=document.getElementById('chart-atk').getContext('2d');
-    charts['atk']=new Chart(ctx,{type:'bar',data:{labels:top.map(p=>sn(p.name)),datasets:[{data:top.map(p=>p.Attacking_Efficiency||0),backgroundColor:top.map((_,i)=>`rgba(255,${62+i*9},62,${0.85-i*0.03})`),borderRadius:4}]},options:{...baseOpts(),scales:{...baseOpts().scales,y:{...baseOpts().scales.y,max:100}}}});}
+  if(atkData.length){
+    charts['atk']=new Chart(document.getElementById('chart-atk').getContext('2d'),{type:'bar',
+      data:{labels:atkData.map(p=>sn(p.name)),datasets:[{data:atkVals,backgroundColor:atkData.map((_,i)=>`rgba(255,${62+i*9},62,${0.85-i*0.03})`),borderRadius:4}]},
+      options:{...baseOpts(),scales:{...baseOpts().scales,y:{...baseOpts().scales.y,...(!isSimple?{max:100}:{})}}}});
+  }
 
+  // Chart 2: Assists leaders (simple) vs DEF Efficiency (advanced)
+  const defData = isSimple ? byAst.slice(0,15) : byD.slice(0,15);
+  const defVals = isSimple ? defData.map(p=>p.Ast_total||0) : defData.map(p=>p.Defensive_Efficiency||0);
+  const defTitle = isSimple ? 'Top Assisters — Season Assists' : 'Defensive Efficiency — Top 15';
+  document.querySelector('#tab-overview .grid2 .card:last-child .card-title').textContent = defTitle;
   dc('def');
-  if(byD.length){const top=byD.slice(0,15),ctx=document.getElementById('chart-def').getContext('2d');
-    charts['def']=new Chart(ctx,{type:'bar',data:{labels:top.map(p=>sn(p.name)),datasets:[{data:top.map(p=>p.Defensive_Efficiency||0),backgroundColor:top.map((_,i)=>`rgba(${59+i*4},${130-i*4},246,${0.85-i*0.03})`),borderRadius:4}]},options:{...baseOpts(),scales:{...baseOpts().scales,y:{...baseOpts().scales.y,max:100}}}});}
+  if(defData.length){
+    charts['def']=new Chart(document.getElementById('chart-def').getContext('2d'),{type:'bar',
+      data:{labels:defData.map(p=>sn(p.name)),datasets:[{data:defVals,backgroundColor:defData.map((_,i)=>`rgba(${59+i*4},${130-i*4},246,${0.85-i*0.03})`),borderRadius:4}]},
+      options:{...baseOpts(),scales:{...baseOpts().scales,y:{...baseOpts().scales.y,...(!isSimple?{max:100}:{})}}}});
+  }
 
+  // Chart 3: xG vs Goals scatter (totals or per-90)
+  const xKey = isSimple ? 'xG_total' : 'xG_p90';
+  const yKey = isSimple ? 'Gls_total' : 'Goals_p90';
+  const xLabel = isSimple ? 'xG (Season Total)' : 'xG per 90';
+  const yLabel = isSimple ? 'Goals (Season Total)' : 'Goals per 90';
+  document.getElementById('ov-scatter-title').textContent = isSimple ? 'xG vs Goals — Season Totals' : 'xG vs Goals Per 90 — Scatter';
   dc('scatter');
-  if(out.length){const ctx=document.getElementById('chart-scatter').getContext('2d');
+  if(out.length){
     const pc=p=>p.pos==='FW'?C.red:p.pos==='MF'?C.yellow:C.blue;
-    const xKey = isOvSimple ? 'xG_total' : 'xG_p90';
-    const yKey = isOvSimple ? 'Gls_total' : 'Goals_p90';
-    const xLabel = isOvSimple ? 'xG (season total)' : 'xG per 90';
-    const yLabel = isOvSimple ? 'Goals (season total)' : 'Goals per 90';
-    document.querySelector('#tab-overview .card:last-child .card-title').textContent = isOvSimple ? 'xG vs Goals — Season Totals' : 'xG vs Goals Per 90 — Scatter';
-    charts['scatter']=new Chart(ctx,{type:'scatter',data:{datasets:[{data:out.map(p=>({x:p[xKey]||0,y:p[yKey]||0,player:p})),backgroundColor:out.map(p=>pc(p)+'cc'),borderColor:out.map(p=>pc(p)),pointRadius:7,pointHoverRadius:10}]},
+    charts['scatter']=new Chart(document.getElementById('chart-scatter').getContext('2d'),{type:'scatter',
+      data:{datasets:[{data:out.map(p=>({x:p[xKey]||0,y:p[yKey]||0,player:p})),backgroundColor:out.map(p=>pc(p)+'cc'),borderColor:out.map(p=>pc(p)),pointRadius:7,pointHoverRadius:10}]},
       options:{...baseOpts(),plugins:{...baseOpts().plugins,tooltip:{...baseOpts().plugins.tooltip,callbacks:{label:c=>{const p=c.raw.player;return[p.name+' ('+p.pos+')',`${xLabel}: ${(p[xKey]||0).toFixed(2)}  ${yLabel}: ${(p[yKey]||0).toFixed(2)}`];}}}},
-      scales:{x:{...baseOpts().scales.x,title:{display:true,text:xLabel,color:C.text2,font:{family:"'DM Mono',monospace",size:11}}},y:{...baseOpts().scales.y,title:{display:true,text:yLabel,color:C.text2,font:{family:"'DM Mono',monospace",size:11}}}}}});}
+      scales:{x:{...baseOpts().scales.x,title:{display:true,text:xLabel,color:C.text2,font:{family:"'DM Mono',monospace",size:11}}},y:{...baseOpts().scales.y,title:{display:true,text:yLabel,color:C.text2,font:{family:"'DM Mono',monospace",size:11}}}}}});
+  }
 }
 
 // ════════════════════════ ROSTER ════════════════════════
@@ -1122,11 +1149,18 @@ function renderSpotlight(){
       scales:{r:{min:0,max:1,ticks:{display:false},grid:{color:C.grid},angleLines:{color:'rgba(57,255,110,0.1)'},pointLabels:{color:C.text2,font:{family:"'DM Mono',monospace",size:10}}}}}});
 
   dc('sp-bar');
+  const spBarLabels = spView==='simple'
+    ? ['Goals','xG','Assists','xAG','Shots OT','Key Passes']
+    : ['Goals/90','xG/90','Assists/90','xAG/90','SoT/90','G+'];
+  const spBarData = spView==='simple'
+    ? [p.Gls_total,p.xG_total,p.Ast_total,p.xAG_total,p.SoT_total,p.KP_total].map(v=>v||0)
+    : [p.Goals_p90,p.xG_p90,p.Assists_p90,p.xAG_p90,p.SoT_p90,p.Goals_Added].map(v=>v||0);
+  const spBarColors = [C.red,C.red,C.yellow,C.yellow,C.yellow,C.accent];
   charts['sp-bar']=new Chart(document.getElementById('chart-sp-bar').getContext('2d'),{type:'bar',
-    data:{labels:['Goals/90','xG/90','Assists/90','xAG/90','SoT/90','Tkl Won/90','Interceptions/90','Pressures/90'],
-      datasets:[{data:[p.Goals_p90,p.xG_p90,p.Assists_p90,p.xAG_p90,p.SoT_p90,p.Tkl_Won_p90,p.Interceptions_p90,p.Pressures_p90].map(v=>v||0),
-        backgroundColor:[C.red,C.red,C.yellow,C.yellow,C.yellow,C.blue,C.blue,C.blue].map(c=>c+'cc'),
-        borderColor:[C.red,C.red,C.yellow,C.yellow,C.yellow,C.blue,C.blue,C.blue],borderWidth:1,borderRadius:4}]},
+    data:{labels:spBarLabels,
+      datasets:[{data:spBarData,
+        backgroundColor:spBarColors.map(c=>c+'cc'),
+        borderColor:spBarColors,borderWidth:1,borderRadius:4}]},
     options:baseOpts()});
 }
 
@@ -1184,8 +1218,7 @@ function renderCompare(){
   const ml = isSimple
     ? ['Goals','xG','Assists','xAG','SoT','Key Passes']
     : ['Gls/90','xG/90','Ast/90','xAG/90','SoT/90','G+'];
-  const chartTitle = isSimple ? 'Head-to-Head Season Totals' : 'Head-to-Head Per-90';
-  document.querySelector('#tab-compare .card:last-child .card-title').textContent = chartTitle;
+  document.getElementById('cmp-chart-title').textContent = isSimple ? 'Head-to-Head Season Totals' : 'Head-to-Head Per-90';
   charts['cmp']=new Chart(document.getElementById('chart-cmp').getContext('2d'),{type:'bar',
     data:{labels:ml,datasets:[
       {label:a.name,data:ms.map(m=>a[m]||0),backgroundColor:C.accent+'99',borderColor:C.accent,borderWidth:1,borderRadius:4},
