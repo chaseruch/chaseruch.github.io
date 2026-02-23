@@ -602,17 +602,23 @@ Seattle, Colorado - TBD</textarea>
 
   <!-- GOALKEEPERS -->
   <div id="tab-gk" class="tab-panel">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:14px">
+      <div class="view-toggle">
+        <button class="view-toggle-btn active" id="gk-view-simple" onclick="setGKView('simple')">SIMPLE</button>
+        <button class="view-toggle-btn" id="gk-view-advanced" onclick="setGKView('advanced')">ADVANCED</button>
+      </div>
+    </div>
     <div id="gk-empty" class="empty-state"><div class="empty-icon">🧤</div><div class="empty-title">No Goalkeepers Yet</div><div class="empty-sub">Select GK as position when adding a player</div></div>
     <div id="gk-content" style="display:none">
       <div class="grid3" id="gk-podium" style="margin-bottom:18px"></div>
       <div class="grid2">
-        <div class="card"><div class="card-title yellow">GK Efficiency Rankings</div><div class="chart-wrap tall"><canvas id="chart-gk-bar"></canvas></div></div>
-        <div class="card"><div class="card-title">PSxG-GA Per 90</div><div class="chart-wrap tall"><canvas id="chart-gk-psxg"></canvas></div></div>
+        <div class="card"><div class="card-title yellow" id="gk-chart1-title">GK Rankings</div><div class="chart-wrap tall"><canvas id="chart-gk-bar"></canvas></div></div>
+        <div class="card"><div class="card-title" id="gk-chart2-title">Goals Allowed / 90</div><div class="chart-wrap tall"><canvas id="chart-gk-psxg"></canvas></div></div>
       </div>
       <div class="card" style="margin-top:18px">
         <div class="table-wrap">
           <table>
-            <thead><tr><th>#</th><th>PLAYER</th><th>TEAM</th><th>90s</th><th>GK EFF</th><th>SAVE%</th><th>GA/90</th><th>PSxG-GA/90</th><th>G+</th><th>SALARY</th><th style="width:60px"></th></tr></thead>
+            <thead><tr id="gk-thead"></tr></thead>
             <tbody id="gk-tbody"></tbody>
           </table>
         </div>
@@ -1227,6 +1233,14 @@ function renderCompare(){
 }
 
 // ════════════════════════ GOALKEEPERS ════════════════════════
+var gkView = 'simple';
+function setGKView(v){
+  gkView = v;
+  document.getElementById('gk-view-simple').classList.toggle('active', v==='simple');
+  document.getElementById('gk-view-advanced').classList.toggle('active', v==='advanced');
+  renderGK();
+}
+
 function renderGK(){
   const gks=[...players.filter(p=>p.pos==='GK')].sort((a,b)=>(b.GK_Efficiency||0)-(a.GK_Efficiency||0));
   const has=gks.length>0;
@@ -1234,50 +1248,98 @@ function renderGK(){
   document.getElementById('gk-content').style.display=has?'block':'none';
   if(!has) return;
 
+  const isSimple = gkView === 'simple';
+  const mono = "font-family:'DM Mono',monospace";
+
+  // Podium cards — simple shows Save% + GA, advanced shows efficiency + G+
   document.getElementById('gk-podium').innerHTML=gks.slice(0,3).map((p,i)=>`
     <div class="card" style="border-color:${['rgba(255,216,77,.4)','rgba(200,200,200,.3)','rgba(184,115,51,.3)'][i]}">
       <div class="card-title" style="color:${['var(--yellow)','#ccc','#cd7f32'][i]}">${['🥇 #1','🥈 #2','🥉 #3'][i]} GOALKEEPER</div>
       <div class="player-name-big" style="font-size:18px">${p.name}</div>
-      <div class="player-meta-sm">${p.squad} · Age ${p.age||'—'}</div>
+      <div class="player-meta-sm">${p.squad} · ${(+p.nineties||0).toFixed(1)} × 90min</div>
       <div style="margin-top:10px">
-        <div class="eff-track"><div class="eff-fill eff-gk" style="width:${p.GK_Efficiency||0}%"></div></div>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:30px;color:var(--yellow);margin-top:3px">${(p.GK_Efficiency||0).toFixed(1)}</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
-          <div class="mini-stat"><div class="mini-val" style="font-size:18px">${(p['Save%']||0).toFixed(1)}%</div><div class="mini-key">SAVE%</div></div>
-          <div class="mini-stat"><div class="mini-val" style="font-size:18px">${(p.GA_p90||0).toFixed(2)}</div><div class="mini-key">GA/90</div></div>
-          <div class="mini-stat"><div class="mini-val" style="font-size:18px;color:var(--accent)">${(p.GK_Goals_Added||0)>=0?'+':''}${(p.GK_Goals_Added||0).toFixed(2)}</div><div class="mini-key">G+</div></div>
-        </div>
-        ${p.guaranteed_comp ? `<div style="margin-top:8px"><span class="salary-badge">💰 ${p.guaranteed_comp}</span></div>` : ''}
-        </div></div>`).join('');
+        ${isSimple ? `
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+            <div class="mini-stat"><div class="mini-val" style="font-size:22px">${(p['Save%']||0).toFixed(1)}%</div><div class="mini-key">SAVE%</div></div>
+            <div class="mini-stat"><div class="mini-val" style="font-size:22px">${(p.GA_p90||0).toFixed(2)}</div><div class="mini-key">GA/90</div></div>
+            <div class="mini-stat"><div class="mini-val" style="font-size:22px">${Math.round((+p.nineties||0)*(p['Save%']||0)/100*((p.GA_p90||0)/(1-(p['Save%']||0)/100)||0)||0)}</div><div class="mini-key">SAVES</div></div>
+            <div class="mini-stat"><div class="mini-val" style="font-size:22px">${Math.round((p.GA_p90||0)*(+p.nineties||0))}</div><div class="mini-key">GA TOTAL</div></div>
+          </div>` : `
+          <div class="eff-track"><div class="eff-fill eff-gk" style="width:${p.GK_Efficiency||0}%"></div></div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:30px;color:var(--yellow);margin-top:3px">${(p.GK_Efficiency||0).toFixed(1)}</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+            <div class="mini-stat"><div class="mini-val" style="font-size:18px">${(p['Save%']||0).toFixed(1)}%</div><div class="mini-key">SAVE%</div></div>
+            <div class="mini-stat"><div class="mini-val" style="font-size:18px">${(p.GA_p90||0).toFixed(2)}</div><div class="mini-key">GA/90</div></div>
+            <div class="mini-stat"><div class="mini-val" style="font-size:18px;color:var(--accent)">${(p.GK_Goals_Added||0)>=0?'+':''}${(p.GK_Goals_Added||0).toFixed(2)}</div><div class="mini-key">G+</div></div>
+          </div>
+          ${p.guaranteed_comp ? `<div style="margin-top:8px"><span class="salary-badge">💰 ${p.guaranteed_comp}</span></div>` : ''}`}
+      </div>
+    </div>`).join('');
 
+  // Chart 1
+  const byChart1 = isSimple
+    ? [...gks].sort((a,b)=>(b['Save%']||0)-(a['Save%']||0))
+    : gks;
+  document.getElementById('gk-chart1-title').textContent = isSimple ? 'Save% Rankings' : 'GK Efficiency Rankings';
   dc('gk-bar');
   charts['gk-bar']=new Chart(document.getElementById('chart-gk-bar').getContext('2d'),{type:'bar',
-    data:{labels:gks.map(p=>sn(p.name)),datasets:[{data:gks.map(p=>p.GK_Efficiency||0),backgroundColor:gks.map((_,i)=>`rgba(255,${216-i*14},${77-i*5},${0.85-i*0.04})`),borderRadius:4}]},
-    options:{...baseOpts(),scales:{...baseOpts().scales,y:{...baseOpts().scales.y,max:100}}}});
+    data:{labels:byChart1.map(p=>sn(p.name)),datasets:[{
+      data:byChart1.map(p=>isSimple?(p['Save%']||0):(p.GK_Efficiency||0)),
+      backgroundColor:byChart1.map((_,i)=>`rgba(255,${216-i*14},${77-i*5},${0.85-i*0.04})`),borderRadius:4}]},
+    options:{...baseOpts(),scales:{...baseOpts().scales,y:{...baseOpts().scales.y,...(!isSimple?{max:100}:{})}}}});
 
+  // Chart 2
+  const byChart2 = isSimple
+    ? [...gks].sort((a,b)=>(a.GA_p90||0)-(b.GA_p90||0))
+    : [...gks].sort((a,b)=>(b.GA_minus_xGA||0)-(a.GA_minus_xGA||0));
+  document.getElementById('gk-chart2-title').textContent = isSimple ? 'Goals Allowed / 90 (lower = better)' : 'PSxG-GA (Goals Prevented)';
   dc('gk-psxg');
-  const s2=[...gks].sort((a,b)=>(b['PSxG-GA_p90']||0)-(a['PSxG-GA_p90']||0));
   charts['gk-psxg']=new Chart(document.getElementById('chart-gk-psxg').getContext('2d'),{type:'bar',
-    data:{labels:s2.map(p=>sn(p.name)),datasets:[{data:s2.map(p=>p['PSxG-GA_p90']||0),
-      backgroundColor:s2.map(p=>(p['PSxG-GA_p90']||0)>=0?C.accent+'bb':C.red+'bb'),
-      borderColor:s2.map(p=>(p['PSxG-GA_p90']||0)>=0?C.accent:C.red),borderWidth:1,borderRadius:4}]},
+    data:{labels:byChart2.map(p=>sn(p.name)),datasets:[{
+      data:byChart2.map(p=>isSimple?(p.GA_p90||0):(p.GA_minus_xGA||0)),
+      backgroundColor:byChart2.map(p=>{
+        if(isSimple) return C.blue+'bb';
+        return (p.GA_minus_xGA||0)<=0?C.accent+'bb':C.red+'bb';
+      }),
+      borderColor:byChart2.map(p=>{
+        if(isSimple) return C.blue;
+        return (p.GA_minus_xGA||0)<=0?C.accent:C.red;
+      }),borderWidth:1,borderRadius:4}]},
     options:baseOpts()});
 
-  document.getElementById('gk-tbody').innerHTML=gks.map((p,i)=>`<tr>
-    <td style="color:var(--text2);font-family:'DM Mono',monospace">${i+1}</td>
-    <td style="font-weight:500">${p.name}</td>
-    <td style="color:var(--text2);font-size:12px">${p.squad}</td>
-    <td style="font-family:'DM Mono',monospace;color:var(--text2)">${(+p.nineties||0).toFixed(1)}</td>
-    <td>${rPill(p.GK_Efficiency||0,'gold')}</td>
-    <td style="font-family:'DM Mono',monospace">${(p['Save%']||0).toFixed(1)}%</td>
-    <td style="font-family:'DM Mono',monospace">${(p.GA_p90||0).toFixed(2)}</td>
-    <td style="font-family:'DM Mono',monospace;color:${(p['PSxG-GA_p90']||0)>=0?'var(--accent)':'var(--red)'}">${(p['PSxG-GA_p90']||0)>=0?'+':''}${(p['PSxG-GA_p90']||0).toFixed(3)}</td>
-    <td style="font-family:'DM Mono',monospace;color:${(p.GK_Goals_Added||0)>=0?'var(--accent)':'var(--red)'}">${(p.GK_Goals_Added||0)>=0?'+':''}${(p.GK_Goals_Added||0).toFixed(3)}</td>
-    <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--yellow)">${p.guaranteed_comp||'—'}</td>
-    <td><div class="row-actions">
-      <button class="icon-btn edit-btn" onclick="event.stopPropagation();openModal('${p.id}')">✎</button>
-      <button class="icon-btn del-btn"  onclick="event.stopPropagation();quickDelete('${p.id}')">✕</button>
-    </div></td></tr>`).join('');
+  // Table
+  const simpleCols = ['#','PLAYER','TEAM','90s','SAVE%','GA TOTAL','GA/90','SAVES'];
+  const advCols    = ['#','PLAYER','TEAM','90s','GK EFF','SAVE%','GA/90','PSxG-GA','G+','SALARY'];
+  document.getElementById('gk-thead').innerHTML=(isSimple?simpleCols:advCols)
+    .map(h=>`<th>${h}</th>`).join('');
+
+  document.getElementById('gk-tbody').innerHTML=gks.map((p,i)=>{
+    const nines = +p.nineties||0;
+    const gaTotal = Math.round((p.GA_p90||0)*nines);
+    const saves = Math.round(gaTotal / (1 - (p['Save%']||0)/100) * ((p['Save%']||0)/100)) || 0;
+    if(isSimple) return `<tr>
+      <td style="color:var(--text2);${mono}">${i+1}</td>
+      <td style="font-weight:500">${p.name}</td>
+      <td style="color:var(--text2);font-size:12px">${p.squad}</td>
+      <td style="${mono};color:var(--text2)">${nines.toFixed(1)}</td>
+      <td style="${mono}">${(p['Save%']||0).toFixed(1)}%</td>
+      <td style="${mono}">${gaTotal}</td>
+      <td style="${mono}">${(p.GA_p90||0).toFixed(2)}</td>
+      <td style="${mono}">${saves}</td>
+    </tr>`;
+    return `<tr>
+      <td style="color:var(--text2);${mono}">${i+1}</td>
+      <td style="font-weight:500">${p.name}</td>
+      <td style="color:var(--text2);font-size:12px">${p.squad}</td>
+      <td style="${mono};color:var(--text2)">${nines.toFixed(1)}</td>
+      <td>${rPill(p.GK_Efficiency||0,'gold')}</td>
+      <td style="${mono}">${(p['Save%']||0).toFixed(1)}%</td>
+      <td style="${mono}">${(p.GA_p90||0).toFixed(2)}</td>
+      <td style="${mono};color:${(p.GA_minus_xGA||0)<=0?'var(--accent)':'var(--red)'}">${(p.GA_minus_xGA||0)<=0?'':'+'}${(p.GA_minus_xGA||0).toFixed(3)}</td>
+      <td style="${mono};color:${(p.GK_Goals_Added||0)>=0?'var(--accent)':'var(--red)'}">${(p.GK_Goals_Added||0)>=0?'+':''}${(p.GK_Goals_Added||0).toFixed(3)}</td>
+      <td style="${mono};font-size:11px;color:var(--yellow)">${p.guaranteed_comp||'—'}</td>
+    </tr>`;
+  }).join('');
 }
 
 // ════════════════════════ TAB SWITCH ════════════════════════
