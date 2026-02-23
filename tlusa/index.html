@@ -719,8 +719,8 @@ EMBED: <blockquote class="twitter-tweet" data-media-max-width="560"><p lang="en"
       <!-- READ VIEW -->
       <div id="art-read-view">
         <div class="art-modal-content" id="art-view-content"></div>
-
       </div>
+
       </div>
     </div>
   </div>
@@ -1617,6 +1617,7 @@ function openArt(md) {
 
 
 function closeArt() { document.getElementById('art-backdrop').classList.remove('open'); artCurrentMD = null; }
+
 function closeArtIfBg(e) { if (e.target === document.getElementById('art-backdrop')) closeArt(); }
 
 // ════════════════════════ INIT ════════════════════════
@@ -1626,11 +1627,10 @@ function closeArtIfBg(e) { if (e.target === document.getElementById('art-backdro
 // Load default articles from hidden textarea store
 (function() {
   try {
+    // HTML textarea is always the source of truth — always overrides localStorage
     document.querySelectorAll('#article-data-store textarea[data-md]').forEach(function(ta) {
       const k = String(ta.dataset.md);
-      if (!articles[k]) {
-        articles[k] = { title: ta.dataset.title || '', date: ta.dataset.date || '', body: ta.value };
-      }
+      articles[k] = { title: ta.dataset.title || '', date: ta.dataset.date || '', body: ta.value };
     });
     localStorage.setItem(ART_KEY, JSON.stringify(articles));
   } catch(e) { console.warn('Article store load error:', e); }
