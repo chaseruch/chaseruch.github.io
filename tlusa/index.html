@@ -157,6 +157,32 @@
     animation: metaFade 0.6s ease 1.7s both;
   }
 
+
+  /* ── STAT TOOLTIPS ── */
+  th[data-tip] { position:relative; cursor:help; }
+  th[data-tip]::after {
+    content: attr(data-tip);
+    position:absolute;
+    bottom:calc(100% + 6px);
+    left:50%;
+    transform:translateX(-50%);
+    background:#1e2530;
+    color:var(--text2);
+    font-family:'Barlow',sans-serif;
+    font-size:10px;
+    font-weight:400;
+    letter-spacing:0;
+    white-space:nowrap;
+    padding:5px 9px;
+    border-radius:5px;
+    border:1px solid var(--border);
+    pointer-events:none;
+    opacity:0;
+    transition:opacity .15s;
+    z-index:100;
+  }
+  th[data-tip]:hover::after { opacity:1; }
+
   /* ── VIEW TOGGLE ── */
   .view-toggle{display:flex;background:rgba(255,255,255,0.05);border-radius:6px;padding:3px;gap:3px}
   .view-toggle-btn{font-family:'Exo 2',sans-serif;font-size:11px;letter-spacing:1px;padding:5px 12px;border:none;border-radius:4px;cursor:pointer;background:none;color:var(--text2);transition:all .2s}
@@ -1125,14 +1151,15 @@ function renderRoster(){
   const isSimple = rsView === 'simple';
   const colspan = isSimple ? 10 : 13;
 
-  const simpleCols = [{k:'#',l:'#'},{k:'name',l:'PLAYER'},{k:'squad',l:'TEAM'},{k:'pos',l:'POS'},{k:'nineties',l:'90s'},{k:'Gls_total',l:'GOALS'},{k:'xG_total',l:'xG'},{k:'Ast_total',l:'SHOT AST'},{k:'xAG_total',l:'xAG'},{k:'SoT_total',l:'SHOTS OT'},{k:'KP_total',l:'KEY PASS'}];
-  const advCols   = [{k:'#',l:'#'},{k:'name',l:'PLAYER'},{k:'squad',l:'TEAM'},{k:'pos',l:'POS'},{k:'nineties',l:'90s'},{k:'Attacking_Efficiency',l:'ATK EFF'},{k:'Defensive_Efficiency',l:'DEF EFF'},{k:'Goals_p90',l:'GLS/90'},{k:'xG_p90',l:'xG/90'},{k:'Assists_p90',l:'SHOT AST/90'},{k:'xAG_p90',l:'xAG/90'},{k:'SoT_p90',l:'SoT/90'},{k:'Goals_Added',l:'G+'}];
+  const simpleCols = [{k:'#',l:'#'},{k:'name',l:'PLAYER'},{k:'squad',l:'TEAM'},{k:'pos',l:'POS'},{k:'nineties',l:'90s',t:'90-min segments played'},{k:'Gls_total',l:'GOALS',t:'Total goals scored'},{k:'xG_total',l:'xG',t:'Expected goals — shot quality'},{k:'Ast_total',l:'SHOT AST',t:'Passes directly creating a shot on goal'},{k:'xAG_total',l:'xAG',t:'Expected assisted goals'},{k:'SoT_total',l:'SHOTS OT',t:'Shots on target'},{k:'KP_total',l:'KEY PASS',t:'Passes leading to a shot'}];
+  const advCols   = [{k:'#',l:'#'},{k:'name',l:'PLAYER'},{k:'squad',l:'TEAM'},{k:'pos',l:'POS'},{k:'nineties',l:'90s',t:'90-min segments played'},{k:'Attacking_Efficiency',l:'ATK EFF',t:'Attacking efficiency score 0-100'},{k:'Defensive_Efficiency',l:'DEF EFF',t:'Defensive efficiency score 0-100'},{k:'Goals_p90',l:'GLS/90',t:'Goals per 90 minutes'},{k:'xG_p90',l:'xG/90',t:'Expected goals per 90 minutes'},{k:'Assists_p90',l:'SHOT AST/90',t:'Shot assists per 90 minutes'},{k:'xAG_p90',l:'xAG/90',t:'Expected assisted goals per 90'},{k:'SoT_p90',l:'SoT/90',t:'Shots on target per 90'},{k:'Goals_Added',l:'G+',t:'Goals Added — overall value metric'}];
   const cols = isSimple ? simpleCols : advCols;
 
   document.getElementById('rs-thead').innerHTML=cols.map(c=>{
     if(!c.k) return '<th></th>';
     const cl=rsSortCol===c.k?(rsSortDir==='desc'?'sort-desc':'sort-asc'):'';
-    return `<th class="${cl}" onclick="rsSort('${c.k}')">${c.l}</th>`;
+    const tip=c.t?` data-tip="${c.t}"`:'';
+    return `<th class="${cl}"${tip} onclick="rsSort('${c.k}')">${c.l}</th>`;
   }).join('');
 
   const mono = "font-family:'Exo 2',sans-serif";
@@ -1433,12 +1460,13 @@ function renderGK(){
   const simpleCols = ['#','PLAYER','TEAM','90s','SAVE%','GA TOTAL','GA/90','SAVES'];
   const advCols    = ['#','PLAYER','TEAM','90s','GK EFF','SAVE%','GA/90','PSxG-GA','G+','SALARY'];
   const gkColDefs = isSimple
-    ? [{k:'#',l:'#'},{k:'name',l:'PLAYER'},{k:'squad',l:'TEAM'},{k:'nineties',l:'90s'},{k:'Save%',l:'SAVE%'},{k:'GA',l:'GA TOTAL'},{k:'GA_p90',l:'GA/90'},{k:'Saves_total',l:'SAVES'}]
-    : [{k:'#',l:'#'},{k:'name',l:'PLAYER'},{k:'squad',l:'TEAM'},{k:'nineties',l:'90s'},{k:'GK_Efficiency',l:'GK EFF'},{k:'Save%',l:'SAVE%'},{k:'GA_p90',l:'GA/90'},{k:'GA_minus_xGA',l:'PSxG-GA'},{k:'GK_Goals_Added',l:'G+'},{k:'guaranteed_comp',l:'SALARY'}];
+    ? [{k:'#',l:'#'},{k:'name',l:'PLAYER'},{k:'squad',l:'TEAM'},{k:'nineties',l:'90s',t:'90-min segments played'},{k:'Save%',l:'SAVE%',t:'Saves divided by shots on target faced'},{k:'GA',l:'GA TOTAL',t:'Total goals allowed'},{k:'GA_p90',l:'GA/90',t:'Goals allowed per 90 minutes'},{k:'Saves_total',l:'SAVES',t:'Total saves made'}]
+    : [{k:'#',l:'#'},{k:'name',l:'PLAYER'},{k:'squad',l:'TEAM'},{k:'nineties',l:'90s',t:'90-min segments played'},{k:'GK_Efficiency',l:'GK EFF',t:'GK efficiency score 0-100'},{k:'Save%',l:'SAVE%',t:'Saves divided by shots on target faced'},{k:'GA_p90',l:'GA/90',t:'Goals allowed per 90 minutes'},{k:'GA_minus_xGA',l:'PSxG-GA',t:'Goals conceded minus expected — negative is better'},{k:'GK_Goals_Added',l:'G+',t:'Goals Added — overall GK value'},{k:'guaranteed_comp',l:'SALARY'}];
   document.getElementById('gk-thead').innerHTML=gkColDefs.map(c=>{
     if(c.k==='#'||c.k==='name'||c.k==='squad'||c.k==='guaranteed_comp') return `<th>${c.l}</th>`;
     const cl=gkSortCol===c.k?(gkSortDir==='desc'?'sort-desc':'sort-asc'):'';
-    return `<th class="${cl}" onclick="gkSort('${c.k}')" style="cursor:pointer">${c.l}</th>`;
+    const tip=c.t?` data-tip="${c.t}"`:'';
+    return `<th class="${cl}"${tip} onclick="gkSort('${c.k}')" style="cursor:pointer">${c.l}</th>`;
   }).join('');
 
   document.getElementById('gk-tbody').innerHTML=gks.map((p,i)=>{
@@ -1614,13 +1642,14 @@ function renderTeams(){
     }]},options:baseOpts()});
 
   // ── Table ───────────────────────────────────────────────
-  const simpleCols = [{k:'#',l:'#'},{k:'name',l:'TEAM'},{k:'gp',l:'GP'},{k:'gf',l:'GF'},{k:'ga',l:'GA'},{k:'gd',l:'GD'},{k:'pts',l:'PTS'},{k:'xpts',l:'xPTS'}];
-  const advCols    = [{k:'#',l:'#'},{k:'name',l:'TEAM'},{k:'gp',l:'GP'},{k:'efficiency',l:'EFF'},{k:'xgf',l:'xGF'},{k:'xga',l:'xGA'},{k:'xgd',l:'xGD'},{k:'gd_minus_xgd',l:'GD-xGD'},{k:'sf',l:'SF'},{k:'sa',l:'SA'},{k:'xpts',l:'xPTS'}];
+  const simpleCols = [{k:'#',l:'#'},{k:'name',l:'TEAM'},{k:'gp',l:'GP',t:'Games played'},{k:'gf',l:'GF',t:'Goals scored'},{k:'ga',l:'GA',t:'Goals allowed'},{k:'gd',l:'GD',t:'Goal difference'},{k:'pts',l:'PTS',t:'League points'},{k:'xpts',l:'xPTS',t:'Expected points based on xG'}];
+  const advCols    = [{k:'#',l:'#'},{k:'name',l:'TEAM'},{k:'gp',l:'GP',t:'Games played'},{k:'efficiency',l:'EFF',t:'Team efficiency score 0-100'},{k:'xgf',l:'xGF',t:'Expected goals created'},{k:'xga',l:'xGA',t:'Expected goals allowed'},{k:'xgd',l:'xGD',t:'Expected goal difference'},{k:'gd_minus_xgd',l:'GD-xGD',t:'Luck/finishing vs expectation'},{k:'sf',l:'SF',t:'Shots created'},{k:'sa',l:'SA',t:'Shots allowed'},{k:'xpts',l:'xPTS',t:'Expected points'}];
   const cols = isSimple ? simpleCols : advCols;
   document.getElementById('tm-thead').innerHTML = cols.map(c=>{
     if(c.k==='#'||c.k==='name') return `<th>${c.l}</th>`;
     const cl = tmSortCol===c.k?(tmSortDir==='desc'?'sort-desc':'sort-asc'):'';
-    return `<th class="${cl}" onclick="tmSort('${c.k}')" style="cursor:pointer">${c.l}</th>`;
+    const tip = c.t?` data-tip="${c.t}"`:'';
+    return `<th class="${cl}"${tip} onclick="tmSort('${c.k}')" style="cursor:pointer">${c.l}</th>`;
   }).join('');
 
   document.getElementById('tm-tbody').innerHTML = data.map((t,i)=>{
