@@ -18,8 +18,10 @@ DIR      = Path(__file__).parent
 HTML     = DIR / "index.html"
 OUT_CSV  = DIR / "mls_outfield_efficiency.csv"
 GK_CSV   = DIR / "mls_gk_efficiency.csv"
-TEAM_CSV = DIR / "mls_team_stats.csv"
-TRAJ_CSV = DIR / "mls_team_trajectory.csv"
+TEAM_CSV  = DIR / "mls_team_stats.csv"
+TRAJ_CSV  = DIR / "mls_team_trajectory.csv"
+XPASS_CSV = DIR / "mls_team_xpass.csv"
+TGA_CSV   = DIR / "mls_team_goals_added.csv"
 
 
 def fmt_salary(v):
@@ -180,6 +182,50 @@ def main():
             }
         print(f"  {len(traj_data)} teams with trajectory data")
 
+    # Load team xPass data
+    xpass_data = {}
+    if XPASS_CSV.exists():
+        xpdf = pd.read_csv(XPASS_CSV)
+        for _, row in xpdf.iterrows():
+            def xg(col, default=0):
+                v = row.get(col, default)
+                try:
+                    if pd.isna(v): return default
+                except: pass
+                return v
+            xpass_data[str(xg("Squad",""))] = {
+                "att_passes":       int(xg("attempted_passes_for",0)),
+                "pass_comp_for":    round(float(xg("pass_completion_percentage_for",0)),1),
+                "xpass_comp_for":   round(float(xg("xpass_completion_percentage_for",0)),1),
+                "pcoe_p100_for":    round(float(xg("passes_completed_over_expected_p100_for",0)),2),
+                "avg_vert_for":     round(float(xg("avg_vertical_distance_for",0)),1),
+                "pass_comp_ag":     round(float(xg("pass_completion_percentage_against",0)),1),
+                "xpass_comp_ag":    round(float(xg("xpass_completion_percentage_against",0)),1),
+                "pcoe_p100_ag":     round(float(xg("passes_completed_over_expected_p100_against",0)),2),
+                "avg_vert_ag":      round(float(xg("avg_vertical_distance_against",0)),1),
+                "pcoe_diff":        round(float(xg("passes_completed_over_expected_difference",0)),2),
+            }
+        print(f"  {len(xpass_data)} teams with xPass data")
+
+    # Load team goals added breakdown
+    tga_data = {}
+    if TGA_CSV.exists():
+        tgadf = pd.read_csv(TGA_CSV)
+        actions = ["dribbling","fouling","interrupting","passing","receiving","shooting"]
+        for _, row in tgadf.iterrows():
+            def tgg(col, default=0):
+                v = row.get(col, default)
+                try:
+                    if pd.isna(v): return default
+                except: pass
+                return v
+            squad = str(tgg("Squad",""))
+            tga_data[squad] = {}
+            for a in actions:
+                tga_data[squad][f"{a}_for"]     = round(float(tgg(f"ga_for_{a}",0)),4)
+                tga_data[squad][f"{a}_against"] = round(float(tgg(f"ga_against_{a}",0)),4)
+        print(f"  {len(tga_data)} teams with G+ breakdown data")
+
     if not all_players:
         print("\n  ERROR: No players loaded — aborting to avoid wiping index.html")
         return
@@ -201,6 +247,8 @@ def main():
     players_json = json.dumps(all_players, ensure_ascii=False)
     teams_json   = json.dumps(teams_data, ensure_ascii=False)
     traj_json    = json.dumps(traj_data, ensure_ascii=False)
+    xpass_json   = json.dumps(xpass_data, ensure_ascii=False)
+    tga_json     = json.dumps(tga_data, ensure_ascii=False)
 
     block = f"""
 
@@ -237,6 +285,8 @@ def main():
 (function() {{
   var _teams = {teams_json};
   var _traj  = {traj_json};
+  var _xpass = {xpass_json};
+  var _tga   = {tga_json};
 
   function tryLoadTeams() {{
     if (typeof teamsData === 'undefined' || typeof trajData === 'undefined') {{
@@ -245,6 +295,8 @@ def main():
     }}
     teamsData = _teams;
     trajData  = _traj;
+    xpassData = _xpass;
+    tgaData   = _tga;
     if (typeof renderTeams === 'function') renderTeams();
     console.log('[TLUSA] Loaded ' + _teams.length + ' teams.');
   }}
