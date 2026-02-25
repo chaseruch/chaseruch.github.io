@@ -360,14 +360,37 @@ def main():
         all_games.to_csv(traj_path, index=False)
         print(f"  Saved {len(all_games)} game rows → {traj_path.name}")
 
-        # Debug: team xPass and Goals Added columns
+        # ── Team xPass (passing style) ────────────────────────
         team_xp = asa.get_team_xpass(leagues="mls", season_name=SEASON, stage_name="Regular Season")
-        print(f"  team_xpass columns: {list(team_xp.columns)}")
+        team_xp["Squad"] = team_xp["team_id"].map(team_map).fillna(team_xp["team_id"])
+        XPASS_COLS = ["team_id", "Squad",
+                      "attempted_passes_for", "pass_completion_percentage_for",
+                      "xpass_completion_percentage_for", "passes_completed_over_expected_p100_for",
+                      "avg_vertical_distance_for",
+                      "pass_completion_percentage_against", "xpass_completion_percentage_against",
+                      "passes_completed_over_expected_p100_against", "avg_vertical_distance_against",
+                      "passes_completed_over_expected_difference"]
+        xp_out = team_xp[[c for c in XPASS_COLS if c in team_xp.columns]]
+        xp_path = OUT_DIR / "mls_team_xpass.csv"
+        xp_out.to_csv(xp_path, index=False)
+        print(f"  Saved {len(xp_out)} teams → {xp_path.name}")
 
+        # ── Team Goals Added (tactical breakdown) ─────────────
         team_ga = asa.get_team_goals_added(leagues="mls", season_name=SEASON, stage_name="Regular Season")
-        print(f"  team_goals_added columns: {list(team_ga.columns)}")
-        print(f"  team_goals_added sample:")
-        print(team_ga.head(3).to_string())
+        team_ga["Squad"] = team_ga["team_id"].map(team_map).fillna(team_ga["team_id"])
+
+        ga_rows = []
+        for _, row in team_ga.iterrows():
+            r = {"team_id": row["team_id"], "Squad": row["Squad"]}
+            for entry in (row["data"] if isinstance(row["data"], list) else []):
+                at = entry["action_type"].lower()
+                r[f"ga_for_{at}"]     = round(entry.get("goals_added_for", 0), 4)
+                r[f"ga_against_{at}"] = round(entry.get("goals_added_against", 0), 4)
+            ga_rows.append(r)
+        ga_df = pd.DataFrame(ga_rows)
+        ga_path = OUT_DIR / "mls_team_goals_added.csv"
+        ga_df.to_csv(ga_path, index=False)
+        print(f"  Saved {len(ga_df)} teams → {ga_path.name}")
 
     except Exception as e:
         import traceback
