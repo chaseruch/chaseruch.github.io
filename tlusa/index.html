@@ -485,7 +485,7 @@ EMBED: <blockquote class="twitter-tweet" data-media-max-width="560"><p lang="en"
     </div>
   </div>
   <div class="hdr-meta">
-    <div><span class="live-dot"></span>STATS AS OF 2/23/26</div>
+    <div><span class="live-dot"></span>STATS AS OF 2/25/26</div>
     <div style="margin-top:4px"><a href="https://x.com/ruch_chase" target="_blank" style="color:var(--text2);font-family:'Exo 2',sans-serif;font-size:11px;letter-spacing:1px;text-decoration:none;">@ruch_chase ↗</a></div>
   </div>
 </header>
@@ -699,7 +699,7 @@ EMBED: <blockquote class="twitter-tweet" data-media-max-width="560"><p lang="en"
             <div id="tm-detail-name" style="font-family:'Exo 2',sans-serif;font-size:32px;font-weight:900;letter-spacing:2px"></div>
             <div id="tm-detail-meta" style="font-family:'Exo 2',sans-serif;font-size:11px;color:var(--text2);letter-spacing:1px;margin-top:4px"></div>
           </div>
-          <button onclick="document.getElementById('tm-detail-backdrop').style.display='none'" style="background:none;border:1px solid var(--border);color:var(--text2);font-family:'Exo 2',sans-serif;font-size:18px;width:36px;height:36px;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
+          <button onclick="document.getElementById('tm-detail-backdrop').style.display='none';document.body.style.overflow=''" style="background:none;border:1px solid var(--border);color:var(--text2);font-family:'Exo 2',sans-serif;font-size:18px;width:36px;height:36px;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
         </div>
         <!-- Trajectory chart -->
         <div class="card" style="margin-bottom:18px">
@@ -1641,7 +1641,6 @@ function openTmDetail(teamName){
   </tr>`).join('');
 
   document.getElementById('tm-detail-backdrop').style.display='block';
-  document.body.style.overflow='hidden';
 }
 
 function closeTmDetail(e){
@@ -1650,6 +1649,14 @@ function closeTmDetail(e){
     document.body.style.overflow='';
   }
 }
+
+// Safety net — always restore scroll if modal is closed
+document.addEventListener('keydown', function(e){
+  if(e.key==='Escape'){
+    document.getElementById('tm-detail-backdrop').style.display='none';
+    document.body.style.overflow='';
+  }
+});
 
 // ════════════════════════ TAB SWITCH ════════════════════════
 function switchTab(id,btn){ if(id==='matchday') setTimeout(renderMatchday,0); if(id==='teams') setTimeout(renderTeams,0);
