@@ -2000,7 +2000,8 @@ function renderMatchday() {
     const md = i + 1;
     const art = articles[md];
     const hasContent = art && art.title && art.body;
-    const excerpt = hasContent ? art.body.replace(/\n/g, ' ').slice(0, 120) + (art.body.length > 120 ? '…' : '') : '';
+    const excerptBody = hasContent ? art.body.replace(/^HEADLINE:[^\n]*\n?/i, '').replace(/^By [^\n]*\n?/i, '').trim() : '';
+    const excerpt = excerptBody ? excerptBody.replace(/\n/g, ' ').slice(0, 120) + (excerptBody.length > 120 ? '…' : '') : '';
     return `
       <div class="md-card ${hasContent ? 'published' : 'placeholder'}" onclick="openArt(${md})">
         <div class="md-card-header">
