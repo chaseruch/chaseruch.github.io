@@ -2144,6 +2144,46 @@ refreshAll();
       </div>
     </div>
 
+    <div class="glossary-section">
+      <div class="glossary-section-title">Team Stats</div>
+      <div class="glossary-grid">
+        <div class="glossary-item"><div class="glossary-abbr">GP</div><div class="glossary-def">Games Played.</div></div>
+        <div class="glossary-item"><div class="glossary-abbr">GF / GA</div><div class="glossary-def">Goals For / Goals Against — actual goals scored and conceded.</div></div>
+        <div class="glossary-item"><div class="glossary-abbr">GD</div><div class="glossary-def">Goal Difference — GF minus GA. Positive = scoring more than conceding.</div></div>
+        <div class="glossary-item"><div class="glossary-abbr">xGF / xGA</div><div class="glossary-def">Expected Goals For / Against — sum of shot quality created or allowed. More predictive of future results than actual goals.</div></div>
+        <div class="glossary-item"><div class="glossary-abbr">xGD</div><div class="glossary-def">Expected Goal Difference — xGF minus xGA. Positive = creating better chances than allowed.</div></div>
+        <div class="glossary-item"><div class="glossary-abbr">GD-xGD</div><div class="glossary-def">Actual GD minus Expected GD — measures luck or finishing quality. Positive = outperforming expected output.</div></div>
+        <div class="glossary-item"><div class="glossary-abbr">SF / SA</div><div class="glossary-def">Shots For / Against — total shot attempts created and allowed.</div></div>
+        <div class="glossary-item"><div class="glossary-abbr">PTS</div><div class="glossary-def">Points — standard league points (W=3, D=1, L=0).</div></div>
+        <div class="glossary-item"><div class="glossary-abbr">xPTS</div><div class="glossary-def">Expected Points — points a team would expect to earn based on xG in each game. Smooths out variance from actual results.</div></div>
+        <div class="glossary-item"><div class="glossary-abbr">TEAM EFF</div><div class="glossary-def">Team Efficiency — composite 0-100 score based on xGF, xGA, xGD, and xPoints.</div></div>
+      </div>
+    </div>
+
+    <div class="glossary-section">
+      <div class="glossary-section-title">Team Passing Style</div>
+      <div class="glossary-grid">
+        <div class="glossary-item"><div class="glossary-abbr">PASS COMP %</div><div class="glossary-def">Pass Completion Percentage — share of attempted passes successfully completed.</div></div>
+        <div class="glossary-item"><div class="glossary-abbr">xPASS COMP %</div><div class="glossary-def">Expected Pass Completion % — predicted completion rate given the difficulty of passes attempted.</div></div>
+        <div class="glossary-item"><div class="glossary-abbr">PCOE/100</div><div class="glossary-def">Passes Completed Over Expected per 100 — how many more (or fewer) passes a team completes than expected. Positive = better than expected.</div></div>
+        <div class="glossary-item"><div class="glossary-abbr">AVG VERT DIST</div><div class="glossary-def">Average Vertical Distance — avg yards gained forward per pass. Higher = more direct, progressive style.</div></div>
+        <div class="glossary-item"><div class="glossary-abbr">OPP PASS COMP %</div><div class="glossary-def">Opponent Pass Completion % — how well opponents pass against this team. Lower = better defensive pressure.</div></div>
+        <div class="glossary-item"><div class="glossary-abbr">PCOE DIFF</div><div class="glossary-def">Passes Completed Over Expected Difference — team PCOE minus opponent PCOE. Positive = team passes better relative to their opponents.</div></div>
+      </div>
+    </div>
+
+    <div class="glossary-section">
+      <div class="glossary-section-title">Team G+ Action Breakdown</div>
+      <div class="glossary-grid">
+        <div class="glossary-item"><div class="glossary-abbr">Shooting</div><div class="glossary-def">G+ from shot-taking — value from the quality and placement of shots. High For = efficient attackers.</div></div>
+        <div class="glossary-item"><div class="glossary-abbr">Passing</div><div class="glossary-def">G+ from passing — value created by moving the ball into dangerous areas. High For = strong build-up play.</div></div>
+        <div class="glossary-item"><div class="glossary-abbr">Receiving</div><div class="glossary-def">G+ from receiving — value from getting into position to receive dangerous passes. Reflects off-ball movement.</div></div>
+        <div class="glossary-item"><div class="glossary-abbr">Dribbling</div><div class="glossary-def">G+ from dribbling — value from carrying the ball past defenders into threatening areas.</div></div>
+        <div class="glossary-item"><div class="glossary-abbr">Interrupting</div><div class="glossary-def">G+ from interceptions/blocks — value from winning the ball or disrupting attacks. High For = pressing, defensive team.</div></div>
+        <div class="glossary-item"><div class="glossary-abbr">Fouling</div><div class="glossary-def">G+ from fouling — value from winning or conceding fouls in dangerous areas.</div></div>
+      </div>
+    </div>
+
     <div style="text-align:right;margin-top:8px">
       <button onclick="document.getElementById('glossary-modal').style.display='none'" style="background:none;border:1px solid rgba(57,255,110,0.3);color:var(--text2);font-family:'Exo 2',sans-serif;font-size:11px;letter-spacing:1px;padding:7px 18px;border-radius:6px;cursor:pointer">CLOSE</button>
     </div>
