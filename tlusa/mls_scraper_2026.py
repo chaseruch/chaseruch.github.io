@@ -360,6 +360,15 @@ def main():
         all_games.to_csv(traj_path, index=False)
         print(f"  Saved {len(all_games)} game rows → {traj_path.name}")
 
+        # Debug: team xPass and Goals Added columns
+        team_xp = asa.get_team_xpass(leagues="mls", season_name=SEASON, stage_name="Regular Season")
+        print(f"  team_xpass columns: {list(team_xp.columns)}")
+
+        team_ga = asa.get_team_goals_added(leagues="mls", season_name=SEASON, stage_name="Regular Season")
+        print(f"  team_goals_added columns: {list(team_ga.columns)}")
+        print(f"  team_goals_added sample:")
+        print(team_ga.head(3).to_string())
+
     except Exception as e:
         import traceback
         print(f"  WARNING: {e}")
