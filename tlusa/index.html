@@ -1493,43 +1493,51 @@ function getTeamStyle(teamName) {
   const tga  = tgaData[teamName]  || {};
   const xp   = xpassData[teamName] || {};
 
+  // If no data loaded yet, return placeholder
+  const hasData = Object.keys(tga).length > 0;
+  if (!hasData) return '— | —';
+
   // ── Attacking label ──────────────────────────────────────
   const atkScores = {
-    'Clinical Finishers': tga.shooting_for   || 0,
-    'Possession Builders': tga.passing_for   || 0,
-    'Movement & Runs':    tga.receiving_for  || 0,
-    'Direct Attackers':   tga.dribbling_for  || 0,
+    'Clinical Finishers':  tga.shooting_for   || 0,
+    'Possession Builders': tga.passing_for    || 0,
+    'Movement & Runs':     tga.receiving_for  || 0,
+    'Direct Attackers':    tga.dribbling_for  || 0,
   };
-  // Passing style modifier overrides label prefix
+
+  // Only pick a winner if values are meaningfully different
+  const atkEntries = Object.entries(atkScores).sort((a,b)=>b[1]-a[1]);
+  const topAtk = atkEntries[0];
   const vertDist = xp.avg_vert_for || 0;
   const pcoe     = xp.pcoe_p100_for || 0;
-  let atkLabel = Object.entries(atkScores).sort((a,b)=>b[1]-a[1])[0][0];
+  let atkLabel = topAtk[0];
 
-  // Modify with passing style
+  // Modify with passing style if meaningful
   if (vertDist > 9.5) {
-    atkLabel = atkLabel.replace('Clinical Finishers','Direct Finishers')
-                       .replace('Possession Builders','Direct Play')
-                       .replace('Direct Attackers','Counter-Attack');
+    if (atkLabel === 'Clinical Finishers')  atkLabel = 'Direct Finishers';
+    if (atkLabel === 'Possession Builders') atkLabel = 'Direct Play';
+    if (atkLabel === 'Direct Attackers')    atkLabel = 'Counter-Attack';
   } else if (pcoe > 0.5) {
-    atkLabel = atkLabel.replace('Possession Builders','Precise Builders')
-                       .replace('Clinical Finishers','Precise Finishers');
+    if (atkLabel === 'Possession Builders') atkLabel = 'Precise Builders';
+    if (atkLabel === 'Clinical Finishers')  atkLabel = 'Precise Finishers';
   }
 
   // ── Defensive label ──────────────────────────────────────
-  const defScores = {
-    'High Press':       tga.interrupting_for  || 0,
-    'Foul & Win':       tga.fouling_for        || 0,
-    'Dribble Stoppers': tga.dribbling_against ? -tga.dribbling_against : 0,
-  };
-  // Low opponent pass completion = suffocating
+  const interrupt = tga.interrupting_for || 0;
   const oppPassComp = xp.pass_comp_ag || 0;
-  let defLabel = 'Defensive Block'; // default
-  if (oppPassComp > 0 && oppPassComp < 78) {
+  const oppPCOE = xp.pcoe_p100_ag || 0;
+  let defLabel = 'Structured Defense';
+
+  if (interrupt > 0.6) {
+    defLabel = 'High Press';
+  } else if (interrupt > 0.35) {
+    defLabel = 'Active Press';
+  } else if (oppPassComp > 0 && oppPassComp < 78) {
     defLabel = 'Suffocating Press';
-  } else {
-    const best = Object.entries(defScores).sort((a,b)=>b[1]-a[1])[0];
-    if (best[1] > 0.15) defLabel = best[0];
-    else if (oppPassComp < 82) defLabel = 'Compact Defense';
+  } else if (oppPCOE < -0.3) {
+    defLabel = 'Disrupts Build-Up';
+  } else if (interrupt < 0.2) {
+    defLabel = 'Compact Block';
   }
 
   return `${atkLabel} | ${defLabel}`;
