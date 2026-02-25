@@ -1488,6 +1488,53 @@ const WEST = new Set(['Austin FC','Colorado Rapids','FC Dallas','Houston Dynamo 
   'Real Salt Lake','San Jose Earthquakes','Seattle Sounders FC','Sporting Kansas City',
   'St. Louis City SC','Vancouver Whitecaps FC','San Diego FC']);
 
+
+function getTeamStyle(teamName) {
+  const tga  = tgaData[teamName]  || {};
+  const xp   = xpassData[teamName] || {};
+
+  // ── Attacking label ──────────────────────────────────────
+  const atkScores = {
+    'Clinical Finishers': tga.shooting_for   || 0,
+    'Possession Builders': tga.passing_for   || 0,
+    'Movement & Runs':    tga.receiving_for  || 0,
+    'Direct Attackers':   tga.dribbling_for  || 0,
+  };
+  // Passing style modifier overrides label prefix
+  const vertDist = xp.avg_vert_for || 0;
+  const pcoe     = xp.pcoe_p100_for || 0;
+  let atkLabel = Object.entries(atkScores).sort((a,b)=>b[1]-a[1])[0][0];
+
+  // Modify with passing style
+  if (vertDist > 9.5) {
+    atkLabel = atkLabel.replace('Clinical Finishers','Direct Finishers')
+                       .replace('Possession Builders','Direct Play')
+                       .replace('Direct Attackers','Counter-Attack');
+  } else if (pcoe > 0.5) {
+    atkLabel = atkLabel.replace('Possession Builders','Precise Builders')
+                       .replace('Clinical Finishers','Precise Finishers');
+  }
+
+  // ── Defensive label ──────────────────────────────────────
+  const defScores = {
+    'High Press':       tga.interrupting_for  || 0,
+    'Foul & Win':       tga.fouling_for        || 0,
+    'Dribble Stoppers': tga.dribbling_against ? -tga.dribbling_against : 0,
+  };
+  // Low opponent pass completion = suffocating
+  const oppPassComp = xp.pass_comp_ag || 0;
+  let defLabel = 'Defensive Block'; // default
+  if (oppPassComp > 0 && oppPassComp < 78) {
+    defLabel = 'Suffocating Press';
+  } else {
+    const best = Object.entries(defScores).sort((a,b)=>b[1]-a[1])[0];
+    if (best[1] > 0.15) defLabel = best[0];
+    else if (oppPassComp < 82) defLabel = 'Compact Defense';
+  }
+
+  return `${atkLabel} | ${defLabel}`;
+}
+
 function setTeamView(v){
   tmView = v;
   document.getElementById('tm-view-simple').classList.toggle('active', v==='simple');
@@ -1518,6 +1565,7 @@ function renderTeams(){
       <div class="card-title" style="color:${['var(--accent)','#ccc','#cd7f32'][i]}">${['🥇 #1','🥈 #2','🥉 #3'][i]} ${isSimple?'POINTS LEADER':'EFFICIENCY LEADER'}</div>
       <div class="player-name-big" style="font-size:18px">${t.name}</div>
       <div class="player-meta-sm">${t.gp} GP · ${t.pts} PTS · ${t.gf} GF / ${t.ga} GA</div>
+      <div style="font-family:'Exo 2',sans-serif;font-size:9px;letter-spacing:2px;color:var(--accent);margin-top:5px;opacity:0.85">${getTeamStyle(t.name)}</div>
       <div style="margin-top:10px">
         ${isSimple ? `
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
@@ -1570,7 +1618,7 @@ function renderTeams(){
   document.getElementById('tm-tbody').innerHTML = data.map((t,i)=>{
     if(isSimple) return `<tr style="cursor:pointer" onclick="openTmDetail('${t.name}')">
       <td style="color:var(--text2);${mono}">${i+1}</td>
-      <td style="font-weight:600">${t.name}</td>
+      <td style="font-weight:600">${t.name}<div style="font-family:'Exo 2',sans-serif;font-size:8px;letter-spacing:1.5px;color:var(--accent);opacity:0.75;margin-top:2px">${getTeamStyle(t.name)}</div></td>
       <td style="${mono};color:var(--text2)">${t.gp}</td>
       <td style="${mono}">${t.gf}</td>
       <td style="${mono}">${t.ga}</td>
@@ -1580,7 +1628,7 @@ function renderTeams(){
     </tr>`;
     return `<tr style="cursor:pointer" onclick="openTmDetail('${t.name}')">
       <td style="color:var(--text2);${mono}">${i+1}</td>
-      <td style="font-weight:600">${t.name}</td>
+      <td style="font-weight:600">${t.name}<div style="font-family:'Exo 2',sans-serif;font-size:8px;letter-spacing:1.5px;color:var(--accent);opacity:0.75;margin-top:2px">${getTeamStyle(t.name)}</div></td>
       <td style="${mono};color:var(--text2)">${t.gp}</td>
       <td>${rPill(t.efficiency||0)}</td>
       <td style="${mono}">${t.xgf.toFixed(1)}</td>
@@ -1602,6 +1650,10 @@ function openTmDetail(teamName){
   document.getElementById('tm-detail-name').textContent = teamName;
   document.getElementById('tm-detail-meta').textContent =
     `${t.gp} GP · ${t.pts} PTS · ${t.gf} GF / ${t.ga} GA · xPTS: ${t.xpts.toFixed(1)}`;
+  const styleTag = document.createElement('div');
+  styleTag.style.cssText = "font-family:'Exo 2',sans-serif;font-size:10px;letter-spacing:2px;color:var(--yellow);margin-top:6px;";
+  styleTag.textContent = getTeamStyle(teamName);
+  document.getElementById('tm-detail-meta').appendChild(styleTag);
 
   // Tactical identity
   const xp  = xpassData[teamName] || {};
