@@ -686,15 +686,15 @@ EMBED: <blockquote class="twitter-tweet" data-media-max-width="560"><p lang="en"
   <!-- TEAMS -->
   <div id="tab-teams" class="tab-panel">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px">
-      <div class="view-toggle">
-        <button class="view-toggle-btn active" id="tm-view-simple" onclick="setTeamView('simple')">SIMPLE</button>
-        <button class="view-toggle-btn" id="tm-view-advanced" onclick="setTeamView('advanced')">ADVANCED</button>
-      </div>
       <select id="tm-conf" onchange="renderTeams()" style="background:var(--card);border:1px solid var(--border);color:var(--text);font-family:'Exo 2',sans-serif;font-size:11px;letter-spacing:1px;padding:6px 12px;border-radius:6px;cursor:pointer">
         <option value="ALL">ALL TEAMS</option>
         <option value="East">EASTERN</option>
         <option value="West">WESTERN</option>
       </select>
+      <div class="view-toggle">
+        <button class="view-toggle-btn active" id="tm-view-simple" onclick="setTeamView('simple')">SIMPLE</button>
+        <button class="view-toggle-btn" id="tm-view-advanced" onclick="setTeamView('advanced')">ADVANCED</button>
+      </div>
     </div>
 
     <!-- Team cards grid -->
@@ -1507,8 +1507,8 @@ var tmSortCol = 'efficiency', tmSortDir = 'desc';
 var tmDetailChart = null;
 
 // Conference mapping (MLS 2026)
-const EAST = new Set(['Atlanta United','CF Montréal','Charlotte FC','Chicago Fire FC',
-  'FC Cincinnati','Columbus Crew','D.C. United','Inter Miami CF','CF Montréal',
+const EAST = new Set(['Atlanta United FC','CF Montréal','Charlotte FC','Chicago Fire FC',
+  'FC Cincinnati','Columbus Crew','D.C. United','Inter Miami CF',
   'Nashville SC','New England Revolution','New York City FC','New York Red Bulls',
   'Orlando City SC','Philadelphia Union','Toronto FC']);
 const WEST = new Set(['Austin FC','Colorado Rapids','FC Dallas','Houston Dynamo FC',
