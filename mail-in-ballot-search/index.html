@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mail-in Ballot Search</title>
+    <meta name="description" content="Search mail-in ballot data by county name, including turnout and rejection statistics.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="search-wrapper">
+            <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" id="searchInput" placeholder="Search by county name..." autocomplete="off">
+        </div>
+        
+        <div class="table-container">
+            <table id="resultsTable">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Total Votes Cast (F1a)</th>
+                        <th>Total Mail Votes</th>
+                        <th>Turnout Percent</th>
+                        <th>Mail Vote Percent</th>
+                        <th>Total Mail Ballots Rejected</th>
+                        <th>Total Mail Ballots Rejected (Late)</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- Results will be populated here -->
+                </tbody>
+            </table>
+            <div id="noResults" class="no-results hidden">No counties found matching your search.</div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
