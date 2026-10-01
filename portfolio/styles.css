@@ -2,9 +2,9 @@
 :root {
     --bg: #0a0a0a;
     --fg: #f5f5f5;
-    --muted: #8a8a8a;
-    --line: #262626;
-    --card: #111111;
+    --muted: #b4b4b4;
+    --line: rgba(255,255,255,.16);
+    --card: rgba(17,17,17,.72);
     --invert-bg: #f5f5f5;
     --invert-fg: #0a0a0a;
   
@@ -19,9 +19,9 @@
   :root[data-theme="light"] {
     --bg: #fafafa;
     --fg: #0a0a0a;
-    --muted: #6b6b6b;
-    --line: #dedede;
-    --card: #ffffff;
+    --muted: #4a4a4a;
+    --line: rgba(0,0,0,.14);
+    --card: rgba(255,255,255,.72);
     --invert-bg: #0a0a0a;
     --invert-fg: #fafafa;
   }
@@ -47,8 +47,8 @@
   
   /* ============ Photo background ============ */
   /* Change the file name here if yours differs */
-  :root { --bg-image: url("bbp_adidas.jpeg"); --overlay: .84; }
-  :root[data-theme="light"] { --overlay: .88; }
+  :root { --bg-image: url("bbp_adidas.jpeg"); --overlay: .66; }
+  :root[data-theme="light"] { --overlay: .74; }
   
   body::before,
   body::after {
