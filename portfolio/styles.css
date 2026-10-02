@@ -165,7 +165,7 @@
   @keyframes scroll { to { transform: translateX(-50%); } }
   
   /* ============ About ============ */
-  .about-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: clamp(32px, 6vw, 96px); }
+  .about-grid { display: grid; grid-template-columns: 1fr; gap: clamp(32px, 4vw, 56px); }
   .big { font-size: clamp(24px, 3.2vw, 40px); line-height: 1.2; letter-spacing: -.02em; font-weight: 500; }
   .about-side {
     background: var(--card); border: 1px solid var(--line); border-radius: 16px;
@@ -173,10 +173,9 @@
   }
   .about-side p { color: var(--fg); }
   .about-side p + p { margin-top: 16px; }
-  .stats { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 40px; border-top: 1px solid var(--line); }
-  .stats div { padding-top: 16px; }
-  .stats dt { color: var(--muted); font-size: 11px; }
-  .stats dd { font-size: 40px; font-weight: 600; letter-spacing: -.04em; }
+  @media (min-width: 861px) {
+    .about-side { columns: 2; column-gap: clamp(32px, 4vw, 56px); padding: clamp(28px, 3vw, 44px); }
+  }
   
   /* ============ Timeline ============ */
   .timeline > li {
