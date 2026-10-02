@@ -126,10 +126,10 @@
   }
   .hero-title .line { display: block; overflow: hidden; }
   .hero-title em { letter-spacing: -.02em; }
-  .hero-main { display: grid; grid-template-columns: 1fr minmax(180px, 300px); gap: clamp(24px, 4vw, 64px); align-items: end; }
-  .hero-main .hero-title { font-size: clamp(48px, 9vw, 144px); }
+  .hero-main { display: grid; grid-template-columns: 1fr minmax(220px, 380px); gap: clamp(24px, 4vw, 64px); align-items: end; }
+  .hero-main .hero-title { font-size: clamp(48px, 8.6vw, 128px); }
   .headshot {
-    aspect-ratio: 4 / 5; border-radius: 16px; overflow: hidden;
+    aspect-ratio: 5148 / 4133; border-radius: 16px; overflow: hidden;
     border: 1px solid var(--line); background: var(--card);
     animation: fade 1s .25s var(--ease) both;
   }
@@ -267,7 +267,7 @@
     .nav-links a::after { display: none; }
     .about-grid, .grid, .card-wide { grid-template-columns: 1fr; }
     .hero-main { grid-template-columns: 1fr; }
-    .headshot { order: -1; width: 140px; border-radius: 12px; margin-bottom: 8px; }
+    .headshot { order: -1; width: min(100%, 260px); border-radius: 12px; margin-bottom: 8px; }
     .timeline > li { grid-template-columns: 1fr; gap: 8px; }
     .card-wide .card-body { padding: 28px; }
   }
