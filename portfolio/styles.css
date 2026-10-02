@@ -227,8 +227,12 @@
   .link:hover { border-color: var(--fg); }
   
   /* ============ Chips ============ */
+  .toolkit { display: grid; gap: clamp(28px, 3vw, 40px); }
+  .tool-group { display: grid; grid-template-columns: 220px 1fr; gap: 24px; align-items: start; padding-bottom: clamp(28px, 3vw, 40px); border-bottom: 1px solid var(--line); }
+  .tool-group:last-child { border-bottom: 0; padding-bottom: 0; }
+  .tool-label { color: var(--fg); opacity: .75; font-weight: 500; padding-top: 12px; }
   .chips { display: flex; flex-wrap: wrap; gap: 10px; }
-  .chips li { padding: 10px 18px; border: 1px solid var(--line); border-radius: 999px; font-size: 15px; transition: background .2s, color .2s, border-color .2s; }
+  .chips li { padding: 10px 18px; border: 1px solid var(--line); border-radius: 999px; font-size: 15px; background: var(--card); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); transition: background .2s, color .2s, border-color .2s; }
   .chips li:hover { background: var(--fg); color: var(--bg); border-color: var(--fg); }
   
   /* ============ Contact ============ */
@@ -273,6 +277,8 @@
     .hero-main { grid-template-columns: 1fr; }
     .headshot { order: -1; width: min(100%, 260px); border-radius: 12px; margin-bottom: 8px; }
     .timeline > li { grid-template-columns: 1fr; gap: 8px; }
+    .tool-group { grid-template-columns: 1fr; gap: 12px; }
+    .tool-label { padding-top: 0; }
     .card-wide .card-body { padding: 28px; }
   }
   
