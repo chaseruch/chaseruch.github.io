@@ -1,76 +1,258 @@
-<div class="grid">
-    <!-- 1 · TV COMMERCIAL (wide) -->
-    <article class="card card-wide reveal">
-      <div class="card-media video">
-        <video controls preload="metadata" playsinline>
-          <source src="TVCommercial_FinalDraft_Ruch.mp4" type="video/mp4">
-          Your browser can't play this video. <a href="TVCommercial_FinalDraft_Ruch.mp4">Download it here.</a>
-        </video>
-      </div>
-      <div class="card-body">
-        <p class="tag mono">Advertising · Broadcast Spot</p>
-        <h3>TV Commercial</h3>
-        <p>A one-line summary of the spot, the brand, and the goal.</p>
-        <a href="TVCommercial_FinalDraft_Ruch.mp4" class="link" target="_blank" rel="noopener">Open video →</a>
-      </div>
-    </article>
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chase Ruch — Academic Portfolio</title>
+  <meta name="description" content="Academic portfolio of Chase Ruch — advertising, PR, and broadcast coursework at the University of Nebraska-Lincoln.">
+  <meta property="og:title" content="Chase Ruch — Academic Portfolio">
+  <meta property="og:description" content="Advertising, PR, and broadcast coursework from UNL's College of Journalism and Mass Communications.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script>
+    try { const t = localStorage.getItem('theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+  </script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
 
-    <!-- 2 · PITCH -->
-    <article class="card reveal">
-      <a class="card-media pdf" href="Pitch_ChaseRuch_FinalDraft.pdf" target="_blank" rel="noopener" aria-label="Open Pitch PDF">
-        <object data="Pitch_ChaseRuch_FinalDraft.pdf#toolbar=0&navpanes=0&view=FitH" type="application/pdf" tabindex="-1">
-          <span class="mono">PDF · Tap to open</span>
-        </object>
-        <span class="pdf-open mono">Open PDF ↗</span>
-      </a>
-      <div class="card-body">
-        <p class="tag mono">PR · Media Pitch</p>
-        <h3>Pitch</h3>
-        <p>A one-line summary of the story you pitched and to whom.</p>
-        <a href="Pitch_ChaseRuch_FinalDraft.pdf" class="link" target="_blank" rel="noopener">View PDF →</a>
-      </div>
-    </article>
+  <header class="nav">
+    <a href="#top" class="logo">CHASE<span>.</span></a>
+    <nav id="menu" class="nav-links" aria-label="Primary">
+      <a href="#about">About</a>
+      <a href="#work">Work</a>
+      <a href="#experience">Experience</a>
+      <a href="#contact">Contact</a>
+    </nav>
+    <div class="nav-actions">
+      <button id="theme" class="icon-btn" aria-label="Toggle light/dark theme"><span class="theme-dot"></span></button>
+      <button id="burger" class="icon-btn burger" aria-label="Open menu" aria-expanded="false" aria-controls="menu"><span></span><span></span></button>
+    </div>
+  </header>
 
-    <!-- 3 · NEWS RELEASE -->
-    <article class="card reveal">
-      <a class="card-media pdf" href="NewsRelease_FinalDraft_Ruch.pdf" target="_blank" rel="noopener" aria-label="Open News Release PDF">
-        <object data="NewsRelease_FinalDraft_Ruch.pdf#toolbar=0&navpanes=0&view=FitH" type="application/pdf" tabindex="-1">
-          <span class="mono">PDF · Tap to open</span>
-        </object>
-        <span class="pdf-open mono">Open PDF ↗</span>
-      </a>
-      <div class="card-body">
-        <p class="tag mono">PR · News Release</p>
-        <h3>News Release</h3>
-        <p>A one-line summary of the announcement.</p>
-        <a href="NewsRelease_FinalDraft_Ruch.pdf" class="link" target="_blank" rel="noopener">View PDF →</a>
-      </div>
-    </article>
+  <main id="main">
+    <!-- HERO / ABOUT -->
+    <section id="top" class="hero">
+      <div class="hero-grid">
+        <figure class="headshot reveal">
+          <img src="ruch_soccer_headshot.JPEG" alt="Headshot of Chase Ruch" width="5148" height="4133">
+          <figcaption class="mono">UNL · CoJMC · Class of 2027</figcaption>
+        </figure>
 
-    <!-- 4 · PRINT AD -->
-    <article class="card reveal">
-      <a class="card-media image" href="PrintAd_FinalDraft_Ruch.png" target="_blank" rel="noopener" aria-label="Open Print Ad full size">
-        <img src="PrintAd_FinalDraft_Ruch.png" alt="Print advertisement by Chase Ruch" loading="lazy">
-      </a>
-      <div class="card-body">
-        <p class="tag mono">Advertising · Print</p>
-        <h3>Print Ad</h3>
-        <p>A one-line summary of the concept and audience.</p>
-        <a href="PrintAd_FinalDraft_Ruch.png" class="link" target="_blank" rel="noopener">View full size →</a>
-      </div>
-    </article>
+        <div class="hero-copy">
+          <p class="eyebrow mono reveal">Academic Portfolio · Lincoln, NE · Omaha, NE · Portland, OR</p>
+          <h1 class="hero-title reveal">Chase <em>Ruch.</em></h1>
+          <p class="majors mono reveal">BRDC <span>/</span> ADPR <span>/</span> SPMC</p>
 
-    <!-- 5 · CREATIVE BRIEF (.docx can't preview in a browser) -->
-    <article class="card reveal">
-      <a class="card-media doc" href="CreativeBrief_FinalDraft_Ruch.docx" download aria-label="Download Creative Brief">
-        <span class="doc-icon mono">DOCX</span>
-        <span class="pdf-open mono">Download ↓</span>
-      </a>
-      <div class="card-body">
-        <p class="tag mono">Advertising · Strategy</p>
-        <h3>Creative Brief</h3>
-        <p>A one-line summary of the campaign strategy.</p>
-        <a href="CreativeBrief_FinalDraft_Ruch.docx" class="link" download>Download brief →</a>
+          <div id="about" class="bio reveal">
+            <p>My name is Chase Ruch and I am a senior at the University of Nebraska-Lincoln College of Journalism and Mass Communications as a triple major in BRDC, ADPR and SPMC. Currently, I reside in Portland, Oregon as an intern at adidas corporate in partnership activation. I grew up in Omaha, Nebraska, and am a HuskerVision intern on campus.</p>
+            <p>My whole life, I knew I wanted to work in the realm of sport in some capacity. Sport is one of the few unifying passions in this world, and to surround myself in its chaos inspires me to go to work every day.</p>
+            <p>I possess awards in the broadcasting realm with a first place in the Nebraska Broadcasters Association for student television and an award of merit for the Midwest Broadcast Journalism Society. In the summer of 2026, I won the intern business case competition for adidas North America.</p>
+            <p>In my free time, I like to golf, referee college soccer, go to sporting events and occasionally play video games. I have one younger brother that is also a student at UNL.</p>
+          </div>
+
+          <div class="cta-row reveal">
+            <a href="#work" class="btn btn-solid">View coursework</a>
+            <a href="#contact" class="btn btn-ghost">Get in touch</a>
+          </div>
+        </div>
       </div>
-    </article>
-  </div>
+    </section>
+
+    <!-- TICKER -->
+    <div class="ticker" aria-hidden="true">
+      <div class="ticker-track mono">
+        <span>Creative Brief</span><i>✦</i><span>Print Advertising</span><i>✦</i><span>TV Commercial</span><i>✦</i><span>News Release</span><i>✦</i><span>Media Pitch</span><i>✦</i><span>AP Style</span><i>✦</i>
+        <span>Creative Brief</span><i>✦</i><span>Print Advertising</span><i>✦</i><span>TV Commercial</span><i>✦</i><span>News Release</span><i>✦</i><span>Media Pitch</span><i>✦</i><span>AP Style</span><i>✦</i>
+      </div>
+    </div>
+
+    <!-- SELECTED WORK -->
+    <section id="work" class="section">
+      <div class="section-head reveal">
+        <p class="kicker mono">01 — Selected Coursework</p>
+        <h2>From brief to <em>broadcast.</em></h2>
+        <p class="section-sub">Final drafts from advertising and public relations coursework at the College of Journalism and Mass Communications.</p>
+      </div>
+
+      <div class="work-grid">
+        <article class="work-card reveal">
+          <a class="work-media pdf" href="CreativeBrief_FinalDraft_Ruch.pdf" target="_blank" rel="noopener" aria-label="Open Creative Brief PDF">
+            <object data="CreativeBrief_FinalDraft_Ruch.pdf#toolbar=0&navpanes=0&view=FitH" type="application/pdf" tabindex="-1"><span class="fallback mono">PDF</span></object>
+            <span class="media-badge mono">PDF</span>
+            <span class="media-open mono">Open ↗</span>
+          </a>
+          <div class="work-body">
+            <div class="work-meta mono"><span class="num">01</span><span>Advertising · Strategy</span></div>
+            <h3>Creative Brief</h3>
+            <p>The strategic foundation: audience, insight, and the single message every piece of the campaign builds on.</p>
+          </div>
+        </article>
+
+        <article class="work-card work-wide reveal">
+          <a class="work-media image" href="PrintAd_FinalDraft_Ruch.png" target="_blank" rel="noopener" aria-label="Open Print Ad full size">
+            <img src="PrintAd_FinalDraft_Ruch.png" alt="Print advertisement by Chase Ruch" loading="lazy">
+            <span class="media-badge mono">PNG</span>
+            <span class="media-open mono">Full size ↗</span>
+          </a>
+          <div class="work-body">
+            <div class="work-meta mono"><span class="num">02</span><span>Advertising · Print</span></div>
+            <h3>Print Ad</h3>
+            <p>The campaign's core idea condensed into a single frame.</p>
+          </div>
+        </article>
+
+        <article class="work-card reveal">
+          <a class="work-media pdf" href="TVCommercial_FinalDraft_Ruch.pdf" target="_blank" rel="noopener" aria-label="Open TV Commercial PDF">
+            <object data="TVCommercial_FinalDraft_Ruch.pdf#toolbar=0&navpanes=0&view=FitH" type="application/pdf" tabindex="-1"><span class="fallback mono">PDF</span></object>
+            <span class="media-badge mono">PDF</span>
+            <span class="media-open mono">Open ↗</span>
+          </a>
+          <div class="work-body">
+            <div class="work-meta mono"><span class="num">03</span><span>Advertising · Broadcast</span></div>
+            <h3>TV Commercial</h3>
+            <p>The concept written for broadcast, shot by shot.</p>
+          </div>
+        </article>
+
+        <article class="work-card reveal">
+          <a class="work-media pdf" href="NewsRelease_FinalDraft_Ruch.pdf" target="_blank" rel="noopener" aria-label="Open News Release PDF">
+            <object data="NewsRelease_FinalDraft_Ruch.pdf#toolbar=0&navpanes=0&view=FitH" type="application/pdf" tabindex="-1"><span class="fallback mono">PDF</span></object>
+            <span class="media-badge mono">PDF</span>
+            <span class="media-open mono">Open ↗</span>
+          </a>
+          <div class="work-body">
+            <div class="work-meta mono"><span class="num">04</span><span>PR · News Release</span></div>
+            <h3>News Release</h3>
+            <p>The announcement in AP Style, written for reporters to pick up.</p>
+          </div>
+        </article>
+
+        <article class="work-card reveal">
+          <a class="work-media pdf" href="Pitch_ChaseRuch_FinalDraft.pdf" target="_blank" rel="noopener" aria-label="Open Pitch PDF">
+            <object data="Pitch_ChaseRuch_FinalDraft.pdf#toolbar=0&navpanes=0&view=FitH" type="application/pdf" tabindex="-1"><span class="fallback mono">PDF</span></object>
+            <span class="media-badge mono">PDF</span>
+            <span class="media-open mono">Open ↗</span>
+          </a>
+          <div class="work-body">
+            <div class="work-meta mono"><span class="num">05</span><span>PR · Media Pitch</span></div>
+            <h3>Pitch</h3>
+            <p>A targeted pitch to earn coverage for the story.</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- EXPERIENCE -->
+    <section id="experience" class="section">
+      <div class="section-head reveal">
+        <p class="kicker mono">02 — Experience</p>
+        <h2>Where it's been <em>applied.</em></h2>
+      </div>
+      <ol class="timeline">
+        <li class="reveal">
+          <p class="when mono">Jun 2026 – Sep 2026</p>
+          <div>
+            <h3>Partnership Activation Intern <span>— adidas</span></h3>
+            <p class="where mono">Portland, OR · on-site activation support in New York, NY</p>
+            <ul>
+              <li>Tracked partner-publishing performance for the FIFA World Cup 2026 campaign across 116 in-feed placements and 383 stories totaling 1.6B+ potential follower reach; verified compliance via SharePoint and Traackr across LA, NYC, and stadium-captain activations. Worked with Burson public relations agency to create recaps for activations.</li>
+              <li>Built venue credentialing and parking logistics and managed on-site athlete/partner flow at the Brooklyn Bridge Park FIFA World Cup activation, coordinating schedules across physical and digital pass requirements by match and venue.</li>
+              <li>Proposed a two-tier NIL partner activation framework (built on a 4 C's grading rubric) that informed Market 25 partner selection and expansion strategy; compiled findings into a tiering deck for the Partnerships team.</li>
+              <li>Wrote and formatted partner briefs and seeding calendars for a six-partner MLB "Somos Collection" launch and a multi-partner MLS World Cup activation, covering publishing asks, media appearances, and PR activation.</li>
+              <li>Selected as the winning presenter of adidas' 2026 Intern Business Case Competition for activation campaign.</li>
+            </ul>
+          </div>
+        </li>
+        <li class="reveal">
+          <p class="when mono">Aug 2025 – Present</p>
+          <div>
+            <h3>Commentator <span>— Student U Productions, Big Ten Plus</span></h3>
+            <p class="where mono">Lincoln, NE</p>
+            <ul>
+              <li>Serve as on-air commentator for NCAA soccer and basketball broadcasts.</li>
+            </ul>
+          </div>
+        </li>
+        <li class="reveal">
+          <p class="when mono">Aug 2023 – Present</p>
+          <div>
+            <h3>Student Intern <span>— HuskerVision, Nebraska Athletics</span></h3>
+            <p class="where mono">Lincoln, NE</p>
+            <ul>
+              <li>Produce live broadcasts for Nebraska Athletics, including NCAA Soccer tournament coverage for ESPN+ and Big Ten Plus and "Volleyball Day," the most-attended women's sporting event in history.</li>
+              <li>Help organize media day operations for football and men's basketball.</li>
+            </ul>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <!-- EDUCATION + AWARDS -->
+    <section id="education" class="section">
+      <div class="split">
+        <div class="reveal">
+          <p class="kicker mono">03 — Education</p>
+          <div class="panel">
+            <h3>University of Nebraska-Lincoln</h3>
+            <p class="where mono">College of Journalism and Mass Communications</p>
+            <p>B.A., Sports Media &amp; Communications, Broadcasting, and Advertising/PR (Triple Major); Minor in Business Administration</p>
+            <dl class="stats">
+              <div><dt class="mono">Graduation</dt><dd>May 2027</dd></div>
+              <div><dt class="mono">GPA</dt><dd>3.65</dd></div>
+            </dl>
+          </div>
+        </div>
+        <div class="reveal">
+          <p class="kicker mono">04 — Awards</p>
+          <ul class="awards">
+            <li><span class="year mono">2026</span><div><strong>Intern Business Case Competition — Winner</strong><span class="mono">adidas</span></div></li>
+            <li><span class="year mono">2026</span><div><strong>Best Live Sports Event</strong><span class="mono">Nebraska Broadcasters Association</span></div></li>
+            <li><span class="year mono">2025</span><div><strong>Sports Play-by-Play Award of Merit</strong><span class="mono">Midwest Broadcasters Association</span></div></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- TOOLKIT -->
+    <section id="toolkit" class="section">
+      <div class="section-head reveal">
+        <p class="kicker mono">05 — Toolkit</p>
+      </div>
+      <div class="toolkit">
+        <div class="reveal">
+          <h3>Partnership &amp; Campaign Coordination</h3>
+          <ul class="tags"><li>Activation planning</li><li>Partner briefs</li><li>Tiering frameworks</li><li>Seeding logistics</li><li>Credentialing / workback scheduling</li></ul>
+        </div>
+        <div class="reveal">
+          <h3>Tools &amp; Platforms</h3>
+          <ul class="tags"><li>SharePoint</li><li>Traackr</li><li>Microsoft Office 365</li><li>Google Workspace</li><li>Claude</li><li>Adobe Creative Suite</li><li>XPression Graphics</li><li>EVS Replay</li></ul>
+        </div>
+        <div class="reveal">
+          <h3>Communication</h3>
+          <ul class="tags"><li>Public speaking</li><li>Live commentary</li><li>AP Style writing</li><li>Presentation design</li></ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- CONTACT -->
+    <section id="contact" class="section contact">
+      <p class="kicker mono reveal">06 — Contact</p>
+      <h2 class="reveal">Let's <em>talk.</em></h2>
+      <a class="big-link reveal" href="mailto:chaseruch13@gmail.com">chaseruch13@gmail.com ↗</a>
+      <div class="contact-links reveal">
+        <a href="https://www.linkedin.com/in/chase-ruch-66889b25b/" target="_blank" rel="noopener" class="btn btn-ghost">LinkedIn ↗</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer mono">
+    <span>© <span id="year">2026</span> Chase Ruch</span>
+    <a href="#top">Back to top ↑</a>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
